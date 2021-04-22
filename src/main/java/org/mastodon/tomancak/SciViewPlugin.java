@@ -1,11 +1,12 @@
 package org.mastodon.tomancak;
 
+import net.imagej.ImageJ;
+import org.mastodon.mamut.Mastodon;
 import sc.iview.SciView;
 import graphics.scenery.Node;
 import graphics.scenery.volumes.Volume;
 
 import org.mastodon.app.ui.ViewMenuBuilder;
-import org.mastodon.app.plugin.MastodonPlugin;
 import org.mastodon.mamut.MamutAppModel;
 import org.mastodon.mamut.MamutViewTrackScheme;
 import org.mastodon.mamut.model.Link;
@@ -29,21 +30,24 @@ import org.scijava.event.EventHandler;
 import sc.iview.event.NodeActivatedEvent;
 import org.joml.Vector3f;
 
+import javax.swing.*;
+import java.util.Collections;
 import java.util.List;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
 import static org.mastodon.app.ui.ViewMenuBuilder.menu;
 
-@Plugin( type = MastodonPlugin.class )
+@Plugin( type = MamutPlugin.class )
 public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 {
-	private static final String SCIVIEW_CONNECTOR = "[tomancak] start SciView";
+	private static final String SCIVIEW_CONNECTOR = "[tomancak] start sciview";
 	private static final String[] SCIVIEW_CONNECTOR_KEYS = { "not mapped" };
 
-	private static Map< String, String > menuTexts = new HashMap<>();
+	private static final Map< String, String > menuTexts = new HashMap<>();
 	static
 	{
 		menuTexts.put( SCIVIEW_CONNECTOR, "Start SciView" );
@@ -58,7 +62,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 	@Override
 	public List< ViewMenuBuilder.MenuItem > getMenuItems()
 	{
-		return Arrays.asList(
+		return Collections.singletonList(
 				menu( "Plugins",
 						item( SCIVIEW_CONNECTOR ) ) );
 	}
@@ -140,13 +144,15 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				//Volume v = dmd.showOneTimePoint(10);
 
 				//show full volume
+				/* //DISABLED ON 22/04/2021//
 				Volume v = dmd.showTimeSeries();
 				dmd.makeSciViewReadBdvSetting(v);
+				*/
 				//DisplayMastodonData.showTransferFunctionDialog(getContext(),v);
 
 				//show spots...
 				final Node spotsNode = new Node("Mastodon spots");
-				dmd.centerNodeOnVolume(spotsNode,v); //so that shift+mouse rotates nicely
+				//DISABLED ON 22/04/2021//dmd.centerNodeOnVolume(spotsNode,v); //so that shift+mouse rotates nicely
 				dmd.sv.addNode(spotsNode);
 
 				//...and links
@@ -219,7 +225,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				else
 				{
 					//just show spots w/o any additional "services"
-					dmd.showSpots( v.getCurrentTimepoint(), spotsNode,linksNode);
+					//DISABLED ON 22/04/2021//dmd.showSpots( v.getCurrentTimepoint(), spotsNode,linksNode);
 				}
 
 				//big black box
@@ -283,6 +289,33 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 		{
 			stillFocusedNode.getScale().mul(1.50f);
 			stillFocusedNode.setNeedsUpdate(true);
+		}
+	}
+
+	public static void main(String[] args)
+	{
+		try {
+			Locale.setDefault( Locale.US );
+			UIManager.setLookAndFeel( UIManager.getSystemLookAndFeelClassName() );
+
+			//start up our own Fiji/Imagej2
+			final ImageJ ij = new ImageJ();
+			ij.ui().showUI();
+
+			final Mastodon mastodon = (Mastodon)ij.command().run(Mastodon.class, true).get().getCommand();
+			mastodon.setExitOnClose();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (UnsupportedLookAndFeelException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			e.printStackTrace();
 		}
 	}
 }
