@@ -20,6 +20,7 @@ import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.mastodon.spatial.SpatialIndex;
 import org.mastodon.tomancak.dialogs.SpotsDisplayParamsDialog;
+import org.mastodon.tomancak.dialogs.SynchronizeChoiceDialog;
 import org.mastodon.ui.coloring.GraphColorGenerator;
 
 import net.imglib2.RandomAccessibleInterval;
@@ -45,7 +46,7 @@ public class DisplayMastodonData {
 	final MamutPluginAppModel pluginAppModel;
 	final MamutAppModel appModel;
 	final FocusedBdvWindow controllingBdvWindow = new FocusedBdvWindow();
-
+//	static Volume vol = null;
 	//the overall coordinate scale factor from Mastodon to SciView coords
 	//NB: the smaller scale the better! with scale 1, pixels look terrible....
 	public static
@@ -177,11 +178,15 @@ public class DisplayMastodonData {
 
 		v.getViewerState().setInterpolation(Interpolation.NLINEAR);
 		v.getVolumeManager().requestRepaint();
+
 		return v;
 	}
 
 	// ============================================================================================
-
+//	public Volume getVolume()
+//	{
+//		return vol;
+//	}
 	public Volume showTimeSeries()
 	{
 		return showTimeSeries(pluginAppModel,sv);
@@ -224,6 +229,7 @@ public class DisplayMastodonData {
 		v.getViewerState().setInterpolation(Interpolation.NLINEAR);
 		v.getVolumeManager().requestRepaint();
 //		events.publish(new NodeChangedEvent(v));
+//		vol = v;
 		return v;
 	}
 
@@ -234,15 +240,13 @@ public class DisplayMastodonData {
 		//watch when BDV (through its color&brightness dialog) changes display range or volume's color
 		pluginAppModel.getAppModel().getSharedBdvData().getConverterSetups().listeners().add( t -> {
 			System.out.println("BDV says display range: " + t.getDisplayRangeMin() + " -> " + t.getDisplayRangeMax());
-			System.out.println("BDV says new color    : " + t.getColor());
-
+			if(synChoiceParams.synColor)
+			{
+				System.out.println("BDV says new color    : " + t.getColor());
+				restoreVolumeColor(v,volumeColormaps);
+				v.getVolumeManager().requestRepaint();
+			}
 			//request that the volume be repainted in SciView
-
-			v.getConverterSetups().get(0).setDisplayRange(t.getDisplayRangeMin(), t.getDisplayRangeMax());
-			restoreVolumeColor(v,volumeColormaps);
-			v.getVolumeManager().requestRepaint();
-			//also notify the inspector panel
-//			events.publish(new NodeChangedEvent(v));
 		});
 
 		//this block may set up a listener for TP change in a BDV from which SciView was started, if any...
@@ -250,12 +254,15 @@ public class DisplayMastodonData {
 			{
 				System.out.println("Will be syncing timepoints with "+controllingBdvWindow.get().getFrame().getTitle());
 				controllingBdvWindow.get().getViewerPanelMamut().addTimePointListener(tp -> {
-						System.out.println("BDV says new timepoint "+tp);
-						v.getViewerState().setCurrentTimepoint(tp);
-						v.getVolumeManager().requestRepaint();
+						if(synChoiceParams.synTimestamp)
+						{
+							System.out.println("BDV says new timepoint "+tp);
+							v.getViewerState().setCurrentTimepoint(tp);
+							v.getVolumeManager().requestRepaint();
 
-						//also notify the inspector panel
-						events.publish(new NodeChangedEvent(v));
+							//also notify the inspector panel
+//							events.publish(new NodeChangedEvent(v));
+						}
 					});
 
 				controllingBdvWindow.get().getViewerPanelMamut().addTransformListener(rotate ->{
@@ -288,49 +295,21 @@ public class DisplayMastodonData {
 	{
 		//watch when SciView's inspector panel adjusts the color
 		//and re-reset it back to that of Mastodon
-
-		v.getConverterSetups().get(0).setupChangeListeners().add( (t) -> {
-					//read out the current min-max setting (which has been just re-set via the SciView's nodes panel)
-					final double min = t.getDisplayRangeMin();
-					final double max = t.getDisplayRangeMax();
-
-					System.out.println("SciView says display range: " + min +" -> "+ max  );
-					System.out.println("SciView says new color    : " + t.getColor() );
-					//
-					//be of the current Mastodon's color -- essentially,
-					//ignores (by re-setting back) whatever LUT choice has been made in SciView's nodel panel
-					final ConverterSetups setups = pluginAppModel.getAppModel().getSharedBdvData().getConverterSetups();
-					final ArrayList<SourceAndConverter<?>> sacs = pluginAppModel.getAppModel().getSharedBdvData().getSources();
-					for(SourceAndConverter sac:sacs){
-						setups.getBounds().setBounds( setups.getConverterSetup(sac), new Bounds(min,max) );
-//				setups.getConverterSetup(sac).setColor(t.getColor());
-					}
-					v.getConverterSetups().get(0).setDisplayRange(t.getDisplayRangeMin(), t.getDisplayRangeMax());
-//			restoreVolumeColor(v,volumeColormaps);
-//			events.publish(new NodeChangedEvent(v));
-
-					pluginAppModel.getWindowManager().forEachBdvView(
-							view -> {
-//						view.getColoringModel().getFeatureColorModeManager().getBuiltinStyles();
-								view.requestRepaint();
-							});
-				}
-
-		);
-
 		v.getViewerState().getState().changeListeners().add(new ViewerStateChangeListener() {
 			@Override
 			public void viewerStateChanged(ViewerStateChange viewerStateChange) {
-				final int TP = v.getViewerState().getCurrentTimepoint();
-				System.out.println("SciView says new timepoint "+TP);
+				if(synChoiceParams.synTimestamp) {
+					final int TP = v.getViewerState().getCurrentTimepoint();
+					System.out.println("SciView says new timepoint " + TP);
 
-				//also keep ignoring the SciView's color/LUT and enforce color from BDV
-				restoreVolumeColor(v,volumeColormaps);
-				pluginAppModel.getWindowManager().forEachBdvView(
-						view -> {
-							view.getViewerPanelMamut().setTimepoint(TP);
-							view.requestRepaint();
-						});
+					//also keep ignoring the SciView's color/LUT and enforce color from BDV
+					restoreVolumeColor(v, volumeColormaps);
+					pluginAppModel.getWindowManager().forEachBdvView(
+							view -> {
+								view.getViewerPanelMamut().setTimepoint(TP);
+								view.requestRepaint();
+							});
+				}
 			}
 		});
 
@@ -339,6 +318,9 @@ public class DisplayMastodonData {
 	}
 
 	// ============================================================================================
+
+	public
+	final SynchronizeChoiceDialog.ParamsWrapper synChoiceParams = new SynchronizeChoiceDialog.ParamsWrapper();
 
 	public
 	final SpotsDisplayParamsDialog.ParamsWrapper spotVizuParams = new SpotsDisplayParamsDialog.ParamsWrapper();
@@ -613,6 +595,8 @@ public class DisplayMastodonData {
 	public
 	void updateSpotPosition(final Node spotsGatheringNode, final Spot updatedSpot)
 	{
+		if(!synChoiceParams.synSpotLoc)
+			return;
 		final Node spotNode = sv.find(updatedSpot.getLabel()); //KILLER! TODO
 		if (spotNode != null)
 		{
@@ -702,6 +686,15 @@ public class DisplayMastodonData {
 				"sciView",v.getHub().getApplication(),
 				//NB: luckily, getApplication() returns SciView instance
 				"volume",v);
+	}
+
+	public static
+	void showSynchronizeChoiceDialog(final Context ctx,final SynchronizeChoiceDialog.ParamsWrapper synChoiceParams)
+	{
+		//start the TransferFunction modifying dialog
+		ctx.getService(CommandService.class).run(SynchronizeChoiceDialog.class,true,
+				"params",synChoiceParams
+		);
 	}
 
 	public static

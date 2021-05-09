@@ -1,8 +1,17 @@
 package org.mastodon.tomancak;
 
+import bdv.util.Bounds;
+import bdv.viewer.ConverterSetups;
+import bdv.viewer.SourceAndConverter;
+import graphics.scenery.volumes.Colormap;
+import graphics.scenery.volumes.RAIVolume;
+import net.imglib2.display.ColorTable;
+import net.imglib2.display.ColorTable8;
 import net.imagej.ImageJ;
 
+import net.imagej.ops.Ops;
 import net.imglib2.Localizable;
+import net.imglib2.type.numeric.ARGBType;
 import org.scijava.command.ContextCommand;
 import sc.iview.SciView;
 import graphics.scenery.Node;
@@ -34,7 +43,9 @@ import org.joml.Vector3f;
 import sc.iview.event.NodeChangedEvent;
 
 import javax.swing.*;
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
@@ -121,7 +132,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 			@Override
 			public void run()
 			{
-
+//				final DisplayMastodonData dmd = new DisplayMastodonData(pluginAppModel,appModel);
 				dmd.controllingBdvWindow.setupFrom(pluginAppModel);
 
 				try {
@@ -162,7 +173,8 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				linksNode.setPosition(spotsNode.getPosition());
 				dmd.sv.addNode(linksNode);
 				DisplayMastodonData.showSpotsDisplayParamsDialog(getContext(),spotsNode,linksNode,dmd.spotVizuParams);
-
+//				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(),dmd.synColor,dmd.synDisRange,dmd.synTimestamp,dmd.synSpotLoc);
+				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(), dmd.synChoiceParams);
 				//make sure both node update synchronously
 				spotsNode.getUpdate().add( () -> { linksNode.setNeedsUpdate(true); return null; } );
 				linksNode.getUpdate().add( () -> { spotsNode.setNeedsUpdate(true); return null; } );
@@ -205,6 +217,14 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 							.addTimePointListener( tp -> {
 								updateFocus(null);
 								dmd.showSpots(tp,spotsNode,linksNode,colorGenerator);
+							} );
+
+					pluginAppModel.getAppModel()
+							.getModel().getGraph()
+							.addGraphChangeListener(()-> {
+								System.out.println("some change");
+								updateFocus(null);
+								dmd.showSpots( v.getCurrentTimepoint(),spotsNode,linksNode,null);
 							} );
 
 					//setup updating of spots when they are dragged in the BDV
@@ -270,23 +290,40 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				@EventHandler
 				public void onEvent(NodeChangedEvent event) {
 					if (event.getNode() == null) return;
-//					if (event.getNode().getName().equals("Mastodon's raw data"))
-//					{
-//						System.out.println("mastodon raw data 's rotation");
-//						event.getNode().getRotation();
-//
-//						return;
-//					}
-//					pluginAppModel.getAppModel().getSharedBdvData().getSources().forEach(s ->
-//							{
-//
-//							}
-//							);
+					if (event.getNode().getName().equals("Mastodon's raw data"))
+					{
+						if(!dmd.synChoiceParams.synColor||!dmd.synChoiceParams.synDisRange)
+							return;
+
+						System.out.println("mastodon raw data 's change");
+						Volume volume = (Volume) event.getNode();
+
+						System.out.println(volume.getColormap());
+						Colormap cp = volume.getColormap();
+
+						final ConverterSetups setups = pluginAppModel.getAppModel().getSharedBdvData().getConverterSetups();
+						final ArrayList<SourceAndConverter<?>> sacs = pluginAppModel.getAppModel().getSharedBdvData().getSources();
+						for(SourceAndConverter sac:sacs){
+							System.out.println(sac);
+							Random r = new Random();
+							int i1 = r.nextInt(99999999);
+//							System.out.println("origin"+setups.getConverterSetup(sac).getColor());
+//							setups.getConverterSetup(sac).setColor(new ARGBType(i1));
+//							System.out.println("after"+setups.getConverterSetup(sac).getColor());
+						}
+						pluginAppModel.getWindowManager().forEachBdvView(
+								view -> {
+									view.requestRepaint();
+								});
+						return;
+					}
 					pluginAppModel.getAppModel().getModel().getGraph().vertices()
 							.stream()
 							.filter(s -> (s.getLabel().equals(event.getNode().getName())))
 							.forEach(s ->
 							{
+								if(!dmd.synChoiceParams.synSpotLoc)
+									return;
 //								System.out.println("move");
 //								System.out.println(event.getNode().getPosition());
 								Vector3f parentPosition = event.getNode().getParent().getPosition();
