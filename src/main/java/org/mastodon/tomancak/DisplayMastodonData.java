@@ -137,50 +137,6 @@ public class DisplayMastodonData {
 	public static
 	String volumeName = "Mastodon's raw data";
 
-	public Volume showOneTimePoint(final int timepoint)
-	{
-		return showOneTimePoint(timepoint,pluginAppModel,sv);
-	}
-
-	public static
-	Volume showOneTimePoint(final int timepoint, final MamutPluginAppModel mastodonPlugin, final SciView sv)
-	{
-		final SourceAndConverter<?> sac = mastodonPlugin.getAppModel().getSharedBdvData().getSources().get(0);
-		final Volume v = (Volume)sv.addVolume((RandomAccessibleInterval)sac.getSpimSource().getSource(timepoint,0), volumeName);
-
-		//adjust the transfer function to a "diagonal"
-		setTransferFunction(v);
-
-		//override SciView's initial LUT
-		final CachedColorTables volumeColormaps = new CachedColorTables();
-		restoreVolumeColor(v,volumeColormaps);
-
-		//initial min-max display range comes from BDV
-		final ConverterSetup cs = mastodonPlugin.getAppModel().getSharedBdvData().getConverterSetups().getConverterSetup(sac);
-		v.getConverterSetups().get(0).setDisplayRange(cs.getDisplayRangeMin(), cs.getDisplayRangeMax());
-
-		//prepare per axis scaling factors to maintain the data voxel ratio
-		final double[] voxelDims = new double[3];
-		calculateDisplayVoxelRatioAlaBDV(voxelDims, sac.getSpimSource());
-		System.out.println("scaling: "+voxelDims[0]+" x "+voxelDims[1]+" x "+voxelDims[2]);
-
-		v.setName(volumeName);
-		v.removeChild( v.getChildren().get(0) ); //removes the grid node
-
-		v.setWantsComposeModel(false); //makes position,scale,rotation be ignored, also pxToWrld scale is ignored
-		v.setModel( new Matrix4f(scale*(float)voxelDims[0],0,0,0,
-		                         0,-scale*(float)voxelDims[1],0,0,
-		                         0,0,-scale*(float)voxelDims[2],0,
-		                         0,0,0,1) );
-		v.setNeedsUpdateWorld(true);
-		//now the volume's diagonal in world coords is now:
-		//      [0,0,0] -> [scale*origXSize, -scale*origYSize, -scale*origZSize]
-
-		v.getViewerState().setInterpolation(Interpolation.NLINEAR);
-		v.getVolumeManager().requestRepaint();
-
-		return v;
-	}
 
 	// ============================================================================================
 //	public Volume getVolume()
@@ -196,9 +152,12 @@ public class DisplayMastodonData {
 	Volume showTimeSeries(final MamutPluginAppModel mastodonPlugin, final SciView sv)
 	{
 		final SourceAndConverter<?> sac = mastodonPlugin.getAppModel().getSharedBdvData().getSources().get(0);
-		final Volume v = (Volume)sv.addVolume((SourceAndConverter)sac,
-				mastodonPlugin.getAppModel().getSharedBdvData().getNumTimepoints(), volumeName);
+		int np =mastodonPlugin.getAppModel().getSharedBdvData().getNumTimepoints();
+		final Volume v = (Volume)sv.addVolume((SourceAndConverter)sac,np,volumeName,1.0f, 1.0f, 1.0f);
 
+
+//		System.out.println(mastodonPlugin.getAppModel().getSharedBdvData().getSources().size());
+//		System.out.println(np);
 		//adjust the transfer function to a "diagonal"
 		setTransferFunction(v);
 
@@ -215,7 +174,9 @@ public class DisplayMastodonData {
 		//... isotropy scaling is taken care of in the BDV data too ...
 
 		v.setName(volumeName);
-		v.removeChild( v.getChildren().get(0) ); //removes the grid node
+		System.out.println(v.getChildren());
+//		Node n=  v.getChildren().get(0);
+//		v.removeChild( n); //removes the grid node
 
 		v.setWantsComposeModel(false); //makes position,scale,rotation be ignored, also pxToWrld scale is ignored
 		v.setModel( new Matrix4f(scale,0,0,0,

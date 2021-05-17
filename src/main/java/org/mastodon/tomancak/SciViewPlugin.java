@@ -16,6 +16,8 @@ import org.scijava.command.ContextCommand;
 import sc.iview.SciView;
 import graphics.scenery.Node;
 import graphics.scenery.volumes.Volume;
+import org.joml.Vector4f;
+import java.nio.ByteBuffer;
 
 import org.mastodon.app.ui.ViewMenuBuilder;
 import org.mastodon.mamut.MamutAppModel;
@@ -44,9 +46,13 @@ import sc.iview.event.NodeChangedEvent;
 
 import javax.swing.*;
 import java.awt.*;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import java.lang.Math.*;
+
 
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
 import static org.mastodon.app.ui.ViewMenuBuilder.menu;
@@ -301,15 +307,18 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 						System.out.println(volume.getColormap());
 						Colormap cp = volume.getColormap();
 
+
 						final ConverterSetups setups = pluginAppModel.getAppModel().getSharedBdvData().getConverterSetups();
 						final ArrayList<SourceAndConverter<?>> sacs = pluginAppModel.getAppModel().getSharedBdvData().getSources();
 						for(SourceAndConverter sac:sacs){
-							System.out.println(sac);
-							Random r = new Random();
-							int i1 = r.nextInt(99999999);
-//							System.out.println("origin"+setups.getConverterSetup(sac).getColor());
-//							setups.getConverterSetup(sac).setColor(new ARGBType(i1));
-//							System.out.println("after"+setups.getConverterSetup(sac).getColor());
+//							System.out.println(sac);
+							System.out.println(cp);
+							Vector4f col = cp.sample(0.5f);
+							System.out.println(col);
+							col = col.mul(256f,256f,256f,256f);
+							System.out.println("before"+setups.getConverterSetup(sac).getColor());
+							setups.getConverterSetup(sac).setColor(new ARGBType(ARGBType.rgba((float)col.x,(float)col.y,(float)col.z,(float)col.w)));
+							System.out.println("after"+setups.getConverterSetup(sac).getColor());
 						}
 						pluginAppModel.getWindowManager().forEachBdvView(
 								view -> {

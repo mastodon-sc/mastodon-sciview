@@ -42,18 +42,25 @@
 		<dependency>
 			<groupId>com.github.scenerygraphics</groupId>
 			<artifactId>sciview</artifactId>
-<!--			<version>0e36b9b34e</version>-->
-			<version>untagged-1451522151bbaadbc2b2</version>
+			<!--			<version>untagged-1451522151bbaadbc2b2</version>-->
+			<!--			<version>0e36b9b34e</version>-->
+			<version> 31b4e6d</version>
 		</dependency>
-<!--		<dependency>-->
-<!--			<groupId>graphics.scenery</groupId>-->
-<!--			<artifactId>scenery</artifactId>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>com.github.scenerygraphics</groupId>-->
-<!--			<artifactId>scenery</artifactId>-->
-<!--			<version>9062309b80</version>-->
-<!--		</dependency>-->
+		<dependency>
+			<groupId>graphics.scenery</groupId>
+			<artifactId>scenery</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.jetbrains.kotlin</groupId>
+			<artifactId>kotlin-stdlib-jdk8</artifactId>
+			<version>${kotlin.version}</version>
+		</dependency>
+
+		<!--		<dependency>-->
+		<!--			<groupId>com.github.scenerygraphics</groupId>-->
+		<!--			<artifactId>scenery</artifactId>-->
+		<!--			<version>9062309b80</version>-->
+		<!--		</dependency>-->
 	</dependencies>
 
 	<mailingLists>
@@ -96,11 +103,13 @@
 
 		<enforcer.skip>true</enforcer.skip>
 
-<!--		<scenery.version>5de0b1ee</scenery.version>-->
-		<scenery.version>5de0b1e</scenery.version>
-
+		<!--		<scenery.version>5de0b1ee</scenery.version>-->
+		<!--		<scenery.version>5de0b1e</scenery.version>-->
+		<!---->
+		<scenery.version>35ab1c9</scenery.version>
 		<!-- the same as in Mastodon -->
 		<bigdataviewer-core.version>10.2.0</bigdataviewer-core.version>
+
 	</properties>
 
 	<developers>
@@ -145,4 +154,7 @@
 			<url>https://artifactory.cs.vsb.cz/it4i/</url>
 		</repository>
 	</repositories>
+
+
+
 </project>
