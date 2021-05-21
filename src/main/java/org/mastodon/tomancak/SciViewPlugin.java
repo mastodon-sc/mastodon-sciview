@@ -1,23 +1,16 @@
 package org.mastodon.tomancak;
 
-import bdv.util.Bounds;
 import bdv.viewer.ConverterSetups;
 import bdv.viewer.SourceAndConverter;
 import graphics.scenery.volumes.Colormap;
-import graphics.scenery.volumes.RAIVolume;
-import net.imglib2.display.ColorTable;
-import net.imglib2.display.ColorTable8;
 import net.imagej.ImageJ;
 
-import net.imagej.ops.Ops;
-import net.imglib2.Localizable;
+
 import net.imglib2.type.numeric.ARGBType;
-import org.scijava.command.ContextCommand;
 import sc.iview.SciView;
 import graphics.scenery.Node;
 import graphics.scenery.volumes.Volume;
 import org.joml.Vector4f;
-import java.nio.ByteBuffer;
 
 import org.mastodon.app.ui.ViewMenuBuilder;
 import org.mastodon.mamut.MamutAppModel;
@@ -45,13 +38,9 @@ import org.joml.Vector3f;
 import sc.iview.event.NodeChangedEvent;
 
 import javax.swing.*;
-import java.awt.*;
-import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-
-import java.lang.Math.*;
 
 
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
@@ -134,11 +123,11 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 	{
 		new Thread("Mastodon's SciView")
 		{
-			final DisplayMastodonData dmd = new DisplayMastodonData(pluginAppModel,appModel);
+			final DisplayMastodonData dmd = new DisplayMastodonData(pluginAppModel);
 			@Override
 			public void run()
 			{
-//				final DisplayMastodonData dmd = new DisplayMastodonData(pluginAppModel,appModel);
+//				final DisplayMastodonData dmd = new DisplayMastodonData(pluginAppModel);
 				dmd.controllingBdvWindow.setupFrom(pluginAppModel);
 
 				try {
@@ -156,9 +145,6 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				//find the event service to be able to notify the inspector
 				dmd.events = dmd.sv.getScijavaContext().getService(EventService.class);
 				System.out.println("Found an event service: " + dmd.events);
-
-				//show one volume
-				//Volume v = dmd.showOneTimePoint(10);
 
 				//show full volume
 				/* //DISABLED ON 22/04/2021//*/
@@ -180,7 +166,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				dmd.sv.addNode(linksNode);
 				DisplayMastodonData.showSpotsDisplayParamsDialog(getContext(),spotsNode,linksNode,dmd.spotVizuParams);
 //				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(),dmd.synColor,dmd.synDisRange,dmd.synTimestamp,dmd.synSpotLoc);
-				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(), dmd.synChoiceParams);
+				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(), dmd.synChoiceParams,pluginAppModel);
 				//make sure both node update synchronously
 				spotsNode.getUpdate().add( () -> { linksNode.setNeedsUpdate(true); return null; } );
 				linksNode.getUpdate().add( () -> { spotsNode.setNeedsUpdate(true); return null; } );
@@ -222,6 +208,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 							.getViewerPanelMamut()
 							.addTimePointListener( tp -> {
 								updateFocus(null);
+								//System.out.println("detect to a new time point");
 								dmd.showSpots(tp,spotsNode,linksNode,colorGenerator);
 							} );
 
@@ -279,17 +266,15 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				@EventHandler
 				public void onEvent(NodeActivatedEvent event) {
 					if (event.getNode() == null) return;
+					pluginAppModel.getAppModel().getSelectionModel().clearSelection();
 					pluginAppModel.getAppModel().getModel().getGraph().vertices()
 							.stream()
 							.filter(s -> (s.getLabel().equals(event.getNode().getName())))
 							.forEach(s ->
 							{
+								//System.out.println("sciview tells bdv highlight");
 								pluginAppModel.getAppModel().getSelectionModel().setSelected(s,true);
-//								pluginAppModel.getAppModel().getModel().getGraph().addVertexPositionListener(spot -> )
-//								pluginAppModel.getAppModel().getFocusModel().getFocusedVertex(s.getTimepoint()).setPosition(new double[]{s.getDoublePosition(0)});
-//								System.out.println("selected");
-//								System.out.println(event.getNode().getPosition());
-//								s.setPosition();
+								pluginAppModel.getAppModel().getHighlightModel().highlightVertex(s);
 							});
 				}
 

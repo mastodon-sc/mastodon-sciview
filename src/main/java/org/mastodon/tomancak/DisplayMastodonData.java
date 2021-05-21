@@ -13,7 +13,7 @@ import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import org.mastodon.mamut.MamutAppModel;
+
 import org.mastodon.mamut.MamutViewBdv;
 import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.model.Spot;
@@ -44,7 +44,6 @@ import bdv.util.Bounds;
 public class DisplayMastodonData {
 	//Mastodon connection
 	final MamutPluginAppModel pluginAppModel;
-	final MamutAppModel appModel;
 	final FocusedBdvWindow controllingBdvWindow = new FocusedBdvWindow();
 //	static Volume vol = null;
 	//the overall coordinate scale factor from Mastodon to SciView coords
@@ -56,21 +55,19 @@ public class DisplayMastodonData {
 	SciView sv = null;
 	EventService events = null;
 
-
 	//shared cache of colormaps for volumes (to prevent that they are re-created over and over again)
 	final CachedColorTables volumeColormaps = new CachedColorTables();
 
 	public
-	DisplayMastodonData(final MamutPluginAppModel pluginAppModel, final MamutAppModel appModel)
+	DisplayMastodonData(final MamutPluginAppModel pluginAppModel)
 	{
-		this(pluginAppModel,appModel,false);
+		this(pluginAppModel,false);
 	}
 
 	public
-	DisplayMastodonData(final MamutPluginAppModel pluginAppModel, final MamutAppModel appModel, final boolean startSciView)
+	DisplayMastodonData(final MamutPluginAppModel pluginAppModel,  final boolean startSciView)
 	{
 		this.pluginAppModel = pluginAppModel;
-		this.appModel = appModel;
 		if (startSciView) startSciView();
 	}
 
@@ -650,11 +647,11 @@ public class DisplayMastodonData {
 	}
 
 	public static
-	void showSynchronizeChoiceDialog(final Context ctx,final SynchronizeChoiceDialog.ParamsWrapper synChoiceParams)
+	void showSynchronizeChoiceDialog(final Context ctx,final SynchronizeChoiceDialog.ParamsWrapper synChoiceParams,final MamutPluginAppModel mamutPluginAppModel)
 	{
 		//start the TransferFunction modifying dialog
 		ctx.getService(CommandService.class).run(SynchronizeChoiceDialog.class,true,
-				"params",synChoiceParams
+				"params",synChoiceParams,"mamutPluginAppModel",mamutPluginAppModel
 		);
 	}
 
