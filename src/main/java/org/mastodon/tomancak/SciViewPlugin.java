@@ -41,6 +41,7 @@ import javax.swing.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
@@ -283,23 +284,22 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 					if (event.getNode() == null) return;
 					if (event.getNode().getName().equals("Mastodon's raw data"))
 					{
+
 						if(!dmd.synChoiceParams.synColor||!dmd.synChoiceParams.synDisRange)
 							return;
 
 						System.out.println("mastodon raw data 's change");
+
 						Volume volume = (Volume) event.getNode();
 
 						System.out.println(volume.getColormap());
 						Colormap cp = volume.getColormap();
 
-
 						final ConverterSetups setups = pluginAppModel.getAppModel().getSharedBdvData().getConverterSetups();
 						final ArrayList<SourceAndConverter<?>> sacs = pluginAppModel.getAppModel().getSharedBdvData().getSources();
 						for(SourceAndConverter sac:sacs){
-//							System.out.println(sac);
-							System.out.println(cp);
-							Vector4f col = cp.sample(0.5f);
-							System.out.println(col);
+							Vector4f col = cp.sample(0.995f);
+//							System.out.println(col);
 							col = col.mul(256f,256f,256f,256f);
 							System.out.println("before"+setups.getConverterSetup(sac).getColor());
 							setups.getConverterSetup(sac).setColor(new ARGBType(ARGBType.rgba((float)col.x,(float)col.y,(float)col.z,(float)col.w)));

@@ -45,7 +45,7 @@ public class DisplayMastodonData {
 	//Mastodon connection
 	final MamutPluginAppModel pluginAppModel;
 	final FocusedBdvWindow controllingBdvWindow = new FocusedBdvWindow();
-//	static Volume vol = null;
+
 	//the overall coordinate scale factor from Mastodon to SciView coords
 	//NB: the smaller scale the better! with scale 1, pixels look terrible....
 	public static
@@ -104,7 +104,6 @@ public class DisplayMastodonData {
 			public void run()
 			{
 				controllingBdvWindow.setupFrom(pluginAppModel);
-
 				try {
 					sv = SciView.create();
 					sv.setInterpreterWindowVisibility(false);
@@ -136,10 +135,7 @@ public class DisplayMastodonData {
 
 
 	// ============================================================================================
-//	public Volume getVolume()
-//	{
-//		return vol;
-//	}
+
 	public Volume showTimeSeries()
 	{
 		return showTimeSeries(pluginAppModel,sv);
@@ -153,8 +149,6 @@ public class DisplayMastodonData {
 		final Volume v = (Volume)sv.addVolume((SourceAndConverter)sac,np,volumeName,1.0f, 1.0f, 1.0f);
 
 
-//		System.out.println(mastodonPlugin.getAppModel().getSharedBdvData().getSources().size());
-//		System.out.println(np);
 		//adjust the transfer function to a "diagonal"
 		setTransferFunction(v);
 
@@ -171,9 +165,6 @@ public class DisplayMastodonData {
 		//... isotropy scaling is taken care of in the BDV data too ...
 
 		v.setName(volumeName);
-		System.out.println(v.getChildren());
-//		Node n=  v.getChildren().get(0);
-//		v.removeChild( n); //removes the grid node
 
 		v.setWantsComposeModel(false); //makes position,scale,rotation be ignored, also pxToWrld scale is ignored
 		v.setModel( new Matrix4f(scale,0,0,0,
@@ -186,8 +177,7 @@ public class DisplayMastodonData {
 
 		v.getViewerState().setInterpolation(Interpolation.NLINEAR);
 		v.getVolumeManager().requestRepaint();
-//		events.publish(new NodeChangedEvent(v));
-//		vol = v;
+
 		return v;
 	}
 
@@ -222,26 +212,6 @@ public class DisplayMastodonData {
 //							events.publish(new NodeChangedEvent(v));
 						}
 					});
-
-				controllingBdvWindow.get().getViewerPanelMamut().addTransformListener(rotate ->{
-					System.out.println("translation");
-					System.out.println(Arrays.stream(rotate.getTranslation()).toArray());
-					System.out.println(rotate.getTranslation()[0]);
-					System.out.println(rotate.getTranslation()[1]);
-					System.out.println(rotate.getTranslation()[2]);
-					Quaternionf qua = new Quaternionf(rotate.getTranslation()[0],rotate.getTranslation()[0],rotate.getTranslation()[0],rotate.getTranslation()[0]);
-//					v.setRotation(qua);
-//					float x=(float)rotate.getTranslation()[0];
-//					float y=(float)rotate.getTranslation()[1];
-//					float z=(float)rotate.getTranslation()[2];
-//					v.getRotation().rotateYXZ(x,y,z);
-//					v.getModel().setRotationXYZ(x,y,z);
-//					v.getVolumeManager().requestRepaint();
-					System.out.println("-----------------------");
-					System.out.println(v.getRotation());
-					System.out.println(v.getModel().properties());
-
-				});
 			}
 		else System.out.println("Will NOT be syncing timepoints or rotation with any BDV window");
 
@@ -259,9 +229,10 @@ public class DisplayMastodonData {
 				if(synChoiceParams.synTimestamp) {
 					final int TP = v.getViewerState().getCurrentTimepoint();
 					System.out.println("SciView says new timepoint " + TP);
-
+					System.out.println("color is affected");
 					//also keep ignoring the SciView's color/LUT and enforce color from BDV
 					restoreVolumeColor(v, volumeColormaps);
+					System.out.println("effect is removed ");
 					pluginAppModel.getWindowManager().forEachBdvView(
 							view -> {
 								view.getViewerPanelMamut().setTimepoint(TP);
@@ -270,9 +241,6 @@ public class DisplayMastodonData {
 				}
 			}
 		});
-
-//		v.getTransferFunction().
-
 	}
 
 	// ============================================================================================
