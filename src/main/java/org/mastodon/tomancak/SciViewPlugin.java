@@ -165,9 +165,8 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				final Node linksNode = new Node("Mastodon links");
 				linksNode.setPosition(spotsNode.getPosition());
 				dmd.sv.addNode(linksNode);
-				DisplayMastodonData.showSpotsDisplayParamsDialog(getContext(),spotsNode,linksNode,dmd.spotVizuParams);
-//				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(),dmd.synColor,dmd.synDisRange,dmd.synTimestamp,dmd.synSpotLoc);
-				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(), dmd.synChoiceParams,pluginAppModel);
+				DisplayMastodonData.showSpotsDisplayParamsDialog(getContext(),spotsNode,linksNode,dmd.spotVizuParams,v);
+				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(), dmd.synChoiceParams,pluginAppModel,v);
 				//make sure both node update synchronously
 				spotsNode.getUpdate().add( () -> { linksNode.setNeedsUpdate(true); return null; } );
 				linksNode.getUpdate().add( () -> { spotsNode.setNeedsUpdate(true); return null; } );
@@ -298,7 +297,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 						final ConverterSetups setups = pluginAppModel.getAppModel().getSharedBdvData().getConverterSetups();
 						final ArrayList<SourceAndConverter<?>> sacs = pluginAppModel.getAppModel().getSharedBdvData().getSources();
 						for(SourceAndConverter sac:sacs){
-							Vector4f col = cp.sample(0.995f);
+							Vector4f col = cp.sample(0.5f);
 //							System.out.println(col);
 							col = col.mul(256f,256f,256f,256f);
 							System.out.println("before"+setups.getConverterSetup(sac).getColor());

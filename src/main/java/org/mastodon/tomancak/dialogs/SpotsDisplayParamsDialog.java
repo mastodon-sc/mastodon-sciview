@@ -1,6 +1,9 @@
 package org.mastodon.tomancak.dialogs;
 
+import graphics.scenery.volumes.Volume;
 import org.scijava.command.Command;
+import org.scijava.command.CommandInfo;
+import org.scijava.command.CommandService;
 import org.scijava.command.InteractiveCommand;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
@@ -9,9 +12,12 @@ import org.scijava.widget.NumberWidget;
 import graphics.scenery.Node;
 import org.mastodon.tomancak.DisplayMastodonData;
 
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+
 @Plugin(type = Command.class, name = "Spots Display Parameters Dialog")
-public class SpotsDisplayParamsDialog extends InteractiveCommand
-{
+public class SpotsDisplayParamsDialog implements Command{
 	public static class ParamsWrapper {
 		public float spotSize = 1.0f;
 		public float spotAlpha = 1.0f;
@@ -32,7 +38,6 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand
 	@Parameter
 	private Node linksGatheringNode;
 
-
 	@Parameter(label = "Spots size", style = NumberWidget.SLIDER_STYLE,
 	           min = "0.1", max = "10.0", stepSize = "0.05", callback = "adjustSpotSize")
 	private float spotSize = 1.0f;
@@ -44,6 +49,7 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand
 	private
 	void adjustSpotSize()
 	{
+		System.out.println("adjust spot size is called");
 		//tell back to our caller about the new value of this attribute
 		params.spotSize = spotSize;
 
@@ -74,6 +80,7 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand
 	private
 	void adjustLinkSize()
 	{
+		System.out.println("adjust link size is called");
 		//tell back to our caller about the new value of this attribute
 		params.linkSize = linkSize;
 
@@ -117,20 +124,51 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand
 	   dialog is initiated from the prefs store, which (luckily for this story) happens when
 	   the dialog is created/opened (and also with every param change) -- when Sciview starts
 	   up, the vizu settings continues to be the same as it was when Sciview was run last */
+//	@Override
+//	public
+//	void preview()
+//	{
+//		if (!wasSharedParamsObjInitiatedFromThisDialog)
+//		{
+//			params.spotSize       = this.spotSize;
+//			params.spotAlpha      = this.spotAlpha;
+//			params.linkSize       = this.linkSize;
+//			params.linkAlpha      = this.linkAlpha;
+//			params.link_TPsInPast = this.link_TPsInPast;
+//			params.link_TPsAhead  = this.link_TPsAhead;
+//			wasSharedParamsObjInitiatedFromThisDialog = true;
+//		}
+//	}
+	private boolean wasSharedParamsObjInitiatedFromThisDialog = false;
+
+	@Parameter(persist = false)
+	private Volume volume;
+
+	@Parameter
+	private CommandService commandService;
+
 	@Override
 	public
-	void preview()
-	{
-		if (!wasSharedParamsObjInitiatedFromThisDialog)
+	void run() {
+		CommandInfo commandInfo = commandService.getCommand(getClass());
+		System.out.println("commandInfo: "+ commandInfo);
+
+		System.out.println("initial:" + volume.getMetadata().get("sciview-inspector"));
+		List<Object> list =new LinkedList<>();
+		list.add(commandInfo.getInput("spotSize"));
+		list.add(commandInfo.getInput("spotAlpha"));
+		list.add(commandInfo.getInput("linkSize"));
+		list.add(commandInfo.getInput("linkAlpha"));
+
+		HashMap<String, Object> hm = new HashMap<>();
+		List<Object> listAll =new LinkedList<>();
+		listAll.addAll(list);
+		if(volume.getMetadata().get("sciview-inspector") != null)
 		{
-			params.spotSize       = this.spotSize;
-			params.spotAlpha      = this.spotAlpha;
-			params.linkSize       = this.linkSize;
-			params.linkAlpha      = this.linkAlpha;
-			params.link_TPsInPast = this.link_TPsInPast;
-			params.link_TPsAhead  = this.link_TPsAhead;
-			wasSharedParamsObjInitiatedFromThisDialog = true;
+			listAll.addAll((List<Object>)(volume.getMetadata().get("sciview-inspector")));
 		}
+		hm.put("sciview-inspector", listAll);
+		volume.setMetadata(hm);
+		System.out.println("set:"+ volume.getMetadata());
 	}
-	private boolean wasSharedParamsObjInitiatedFromThisDialog = false;
 }

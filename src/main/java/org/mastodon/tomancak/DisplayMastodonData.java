@@ -28,6 +28,9 @@ import org.scijava.Context;
 import org.scijava.command.CommandService;
 import org.scijava.event.EventService;
 import org.scijava.log.LogService;
+import org.scijava.plugin.Parameter;
+import org.scijava.plugin.Plugin;
+import org.scijava.widget.NumberWidget;
 import sc.iview.SciView;
 import sc.iview.event.NodeChangedEvent;
 import sc.iview.commands.edit.add.AddOrientationCompass;
@@ -38,8 +41,10 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.*;
 
-import bdv.util.Bounds;
+import org.scijava.command.Command;
+import org.scijava.command.CommandInfo;
 
+import bdv.util.Bounds;
 
 public class DisplayMastodonData {
 	//Mastodon connection
@@ -57,6 +62,9 @@ public class DisplayMastodonData {
 
 	//shared cache of colormaps for volumes (to prevent that they are re-created over and over again)
 	final CachedColorTables volumeColormaps = new CachedColorTables();
+
+
+
 
 	public
 	DisplayMastodonData(final MamutPluginAppModel pluginAppModel)
@@ -177,6 +185,7 @@ public class DisplayMastodonData {
 
 		v.getViewerState().setInterpolation(Interpolation.NLINEAR);
 		v.getVolumeManager().requestRepaint();
+
 
 		return v;
 	}
@@ -615,23 +624,25 @@ public class DisplayMastodonData {
 	}
 
 	public static
-	void showSynchronizeChoiceDialog(final Context ctx,final SynchronizeChoiceDialog.ParamsWrapper synChoiceParams,final MamutPluginAppModel mamutPluginAppModel)
+	void showSynchronizeChoiceDialog(final Context ctx,final SynchronizeChoiceDialog.ParamsWrapper synChoiceParams,final MamutPluginAppModel mamutPluginAppModel
+	, final Volume volume)
 	{
 		//start the TransferFunction modifying dialog
 		ctx.getService(CommandService.class).run(SynchronizeChoiceDialog.class,true,
-				"params",synChoiceParams,"mamutPluginAppModel",mamutPluginAppModel
+				"params",synChoiceParams,"mamutPluginAppModel",mamutPluginAppModel, "volume",volume
 		);
 	}
 
 	public static
 	void showSpotsDisplayParamsDialog(final Context ctx, final Node spots, final Node links,
-	                                  final SpotsDisplayParamsDialog.ParamsWrapper vizuParams)
+	                                  final SpotsDisplayParamsDialog.ParamsWrapper vizuParams
+			, final Volume volume)
 	{
 		//start the TransferFunction modifying dialog
 		ctx.getService(CommandService.class).run(SpotsDisplayParamsDialog.class,true,
 				"params",vizuParams,
 				"spotsGatheringNode",spots, "linksGatheringNode",links,
-				"spotAlpha",1.0f, "linkAlpha",1.0f);
+				 "volume",volume);
 	}
 
 	public static
