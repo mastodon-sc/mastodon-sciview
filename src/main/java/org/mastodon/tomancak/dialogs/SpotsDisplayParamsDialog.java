@@ -11,13 +11,14 @@ import org.scijava.widget.NumberWidget;
 
 import graphics.scenery.Node;
 import org.mastodon.tomancak.DisplayMastodonData;
+import sc.iview.ui.CustomPropertyUI;
 
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
 @Plugin(type = Command.class, name = "Spots Display Parameters Dialog")
-public class SpotsDisplayParamsDialog implements Command{
+public class SpotsDisplayParamsDialog extends InteractiveCommand {
 	public static class ParamsWrapper {
 		public float spotSize = 1.0f;
 		public float spotAlpha = 1.0f;
@@ -124,50 +125,45 @@ public class SpotsDisplayParamsDialog implements Command{
 	   dialog is initiated from the prefs store, which (luckily for this story) happens when
 	   the dialog is created/opened (and also with every param change) -- when Sciview starts
 	   up, the vizu settings continues to be the same as it was when Sciview was run last */
-//	@Override
-//	public
-//	void preview()
-//	{
-//		if (!wasSharedParamsObjInitiatedFromThisDialog)
-//		{
-//			params.spotSize       = this.spotSize;
-//			params.spotAlpha      = this.spotAlpha;
-//			params.linkSize       = this.linkSize;
-//			params.linkAlpha      = this.linkAlpha;
-//			params.link_TPsInPast = this.link_TPsInPast;
-//			params.link_TPsAhead  = this.link_TPsAhead;
-//			wasSharedParamsObjInitiatedFromThisDialog = true;
-//		}
-//	}
+	@Override
+	public
+	void preview()
+	{
+		if (!wasSharedParamsObjInitiatedFromThisDialog)
+		{
+			params.spotSize       = this.spotSize;
+			params.spotAlpha      = this.spotAlpha;
+			params.linkSize       = this.linkSize;
+			params.linkAlpha      = this.linkAlpha;
+			params.link_TPsInPast = this.link_TPsInPast;
+			params.link_TPsAhead  = this.link_TPsAhead;
+			wasSharedParamsObjInitiatedFromThisDialog = true;
+		}
+	}
 	private boolean wasSharedParamsObjInitiatedFromThisDialog = false;
 
 	@Parameter(persist = false)
 	private Volume volume;
 
-	@Parameter
-	private CommandService commandService;
-
 	@Override
 	public
 	void run() {
-		CommandInfo commandInfo = commandService.getCommand(getClass());
-		System.out.println("commandInfo: "+ commandInfo);
 
 		System.out.println("initial:" + volume.getMetadata().get("sciview-inspector"));
-		List<Object> list =new LinkedList<>();
-		list.add(commandInfo.getInput("spotSize"));
-		list.add(commandInfo.getInput("spotAlpha"));
-		list.add(commandInfo.getInput("linkSize"));
-		list.add(commandInfo.getInput("linkAlpha"));
+		List<String> list =new LinkedList<>();
+		list.add("spotSize");
+		list.add("spotAlpha");
+		list.add("linkSize");
+		list.add("linkAlpha");
 
 		HashMap<String, Object> hm = new HashMap<>();
-		List<Object> listAll =new LinkedList<>();
-		listAll.addAll(list);
-		if(volume.getMetadata().get("sciview-inspector") != null)
-		{
-			listAll.addAll((List<Object>)(volume.getMetadata().get("sciview-inspector")));
-		}
-		hm.put("sciview-inspector", listAll);
+//		List<Object> listAll =new LinkedList<>();
+//		listAll.addAll(list);
+//		if(volume.getMetadata().get("sciview-inspector") != null)
+//		{
+//			listAll.addAll((List<Object>)(volume.getMetadata().get("sciview-inspector")));
+//		}
+		hm.put("sciview-inspector", new CustomPropertyUI(this,list));
 		volume.setMetadata(hm);
 		System.out.println("set:"+ volume.getMetadata());
 	}
