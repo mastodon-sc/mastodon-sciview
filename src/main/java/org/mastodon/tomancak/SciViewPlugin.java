@@ -165,7 +165,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				final Node linksNode = new Node("Mastodon links");
 				linksNode.setPosition(spotsNode.getPosition());
 				dmd.sv.addNode(linksNode);
-//				DisplayMastodonData.showSpotsDisplayParamsDialog(getContext(),spotsNode,linksNode,dmd.spotVizuParams,v);
+				DisplayMastodonData.showSpotsDisplayParamsDialog(getContext(),spotsNode,linksNode,dmd.spotVizuParams,v);
 				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(), dmd.synChoiceParams,pluginAppModel,v);
 				//make sure both node update synchronously
 				spotsNode.getUpdate().add( () -> { linksNode.setNeedsUpdate(true); return null; } );

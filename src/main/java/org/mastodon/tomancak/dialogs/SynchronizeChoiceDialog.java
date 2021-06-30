@@ -1,6 +1,7 @@
 package org.mastodon.tomancak.dialogs;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,6 +21,7 @@ import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.model.Spot;
 import org.mastodon.mamut.plugin.MamutPluginAppModel;
 import org.scijava.widget.NumberWidget;
+import sc.iview.SciView;
 import sc.iview.ui.CustomPropertyUI;
 
 
@@ -42,6 +44,9 @@ public class SynchronizeChoiceDialog extends InteractiveCommand{
     @Parameter(persist = false)
     private Volume volume;
 
+    @Parameter(persist = false)
+    private SciView sciView;
+
     @Volatile @Parameter
     private ParamsWrapper params;
 
@@ -63,6 +68,7 @@ public class SynchronizeChoiceDialog extends InteractiveCommand{
     public
     void preview()
     {
+//        System.out.println("preview is called");
         params.synColor=this.synColor;
         params.synDisRange=this.synDisRange;
         params.synTimestamp=this.synTimestamp;
@@ -74,24 +80,20 @@ public class SynchronizeChoiceDialog extends InteractiveCommand{
     private
     void updateVolumeSetting()
     {
-//        System.out.println("initial:" + volume.getMetadata().get("sciview-inspector"));
         List<String> list =new LinkedList<>();
         list.add("synColor");
         list.add("synDisRange");
         list.add("synTimestamp");
         list.add("synSpotLoc");
-//        System.out.println(list);
-        HashMap<String, Object> hm = new HashMap<>();
-        hm.put("sciview-inspector", new CustomPropertyUI(this,list));
-//        System.out.println(this);
-        volume.setMetadata(hm);
-//        System.out.println("set:"+ volume.getMetadata().get("sciview-inspector"));
+
+        sciView.attachCustomPropertyUIToNode(volume,new CustomPropertyUI(this,list));
     }
 
     @Override
     public
     void run()
     {
+//        System.out.println("Run is called");
         final JFrame pbframe = new JFrame("locate the selected points(sciview) in Mastodon");
         pbframe.setLayout(new BoxLayout(pbframe.getContentPane(), BoxLayout.Y_AXIS));
 

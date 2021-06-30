@@ -11,6 +11,7 @@ import org.scijava.widget.NumberWidget;
 
 import graphics.scenery.Node;
 import org.mastodon.tomancak.DisplayMastodonData;
+import sc.iview.SciView;
 import sc.iview.ui.CustomPropertyUI;
 
 import java.util.HashMap;
@@ -29,6 +30,8 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand {
 		public int link_TPsAhead = 0;
 	}
 
+	@Parameter(persist = false)
+	private SciView sciView;
 	/** the object with parameters shared between this dialog and its caller */
 	@Parameter
 	private ParamsWrapper params;
@@ -148,23 +151,12 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand {
 	@Override
 	public
 	void run() {
-
-		System.out.println("initial:" + volume.getMetadata().get("sciview-inspector"));
 		List<String> list =new LinkedList<>();
 		list.add("spotSize");
 		list.add("spotAlpha");
 		list.add("linkSize");
 		list.add("linkAlpha");
 
-		HashMap<String, Object> hm = new HashMap<>();
-//		List<Object> listAll =new LinkedList<>();
-//		listAll.addAll(list);
-//		if(volume.getMetadata().get("sciview-inspector") != null)
-//		{
-//			listAll.addAll((List<Object>)(volume.getMetadata().get("sciview-inspector")));
-//		}
-		hm.put("sciview-inspector", new CustomPropertyUI(this,list));
-		volume.setMetadata(hm);
-		System.out.println("set:"+ volume.getMetadata());
+		sciView.attachCustomPropertyUIToNode(volume,new CustomPropertyUI(this,list));
 	}
 }

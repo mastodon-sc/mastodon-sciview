@@ -629,7 +629,7 @@ public class DisplayMastodonData {
 	{
 		//start the TransferFunction modifying dialog
 		ctx.getService(CommandService.class).run(SynchronizeChoiceDialog.class,true,
-				"params",synChoiceParams,"mamutPluginAppModel",mamutPluginAppModel, "volume",volume
+				"params",synChoiceParams,"mamutPluginAppModel",mamutPluginAppModel, "volume",volume,"sciView",volume.getHub().getApplication()
 		);
 	}
 
@@ -642,7 +642,7 @@ public class DisplayMastodonData {
 		ctx.getService(CommandService.class).run(SpotsDisplayParamsDialog.class,true,
 				"params",vizuParams,
 				"spotsGatheringNode",spots, "linksGatheringNode",links,
-				 "volume",volume);
+				 "volume",volume,"sciView",volume.getHub().getApplication());
 	}
 
 	public static
