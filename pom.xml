@@ -42,9 +42,8 @@
 		<dependency>
 			<groupId>com.github.scenerygraphics</groupId>
 			<artifactId>sciview</artifactId>
-<!--			<version> 31b4e6d</version>-->
-<!--			<version> d5318786dc</version>-->
-			<version>7159f8ae</version>
+<!--			<version>7159f8ae</version>-->
+			<version>ac16240</version>
 		</dependency>
 		<dependency>
 			<groupId>graphics.scenery</groupId>
@@ -105,7 +104,7 @@
 		<kotlin.version>1.5.20</kotlin.version>
 <!--		<scenery.version>35ab1c9</scenery.version>-->
 <!--		<scenery.version>5de0b1e</scenery.version>-->
-		<scenery.version>e1e0b7e</scenery.version>
+		<scenery.version>33cfcaa</scenery.version>
 
 		<!-- the same as in Mastodon -->
 		<bigdataviewer-core.version>10.2.0</bigdataviewer-core.version>

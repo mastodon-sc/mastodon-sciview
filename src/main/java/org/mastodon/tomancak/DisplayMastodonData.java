@@ -139,7 +139,7 @@ public class DisplayMastodonData {
 	// ============================================================================================
 
 	public static
-	String volumeName = "Mastodon's raw data";
+	String volumeName = "volume";
 
 
 	// ============================================================================================

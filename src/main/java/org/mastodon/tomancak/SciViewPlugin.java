@@ -281,7 +281,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				@EventHandler
 				public void onEvent(NodeChangedEvent event) {
 					if (event.getNode() == null) return;
-					if (event.getNode().getName().equals("Mastodon's raw data"))
+					if (event.getNode().getName().equals("volume"))
 					{
 
 						if(!dmd.synChoiceParams.synColor||!dmd.synChoiceParams.synDisRange)
@@ -297,7 +297,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 						final ConverterSetups setups = pluginAppModel.getAppModel().getSharedBdvData().getConverterSetups();
 						final ArrayList<SourceAndConverter<?>> sacs = pluginAppModel.getAppModel().getSharedBdvData().getSources();
 						for(SourceAndConverter sac:sacs){
-							Vector4f col = cp.sample(0.5f);
+							Vector4f col = cp.sample(0.9f);
 //							System.out.println(col);
 							col = col.mul(256f,256f,256f,256f);
 							System.out.println("before"+setups.getConverterSetup(sac).getColor());
