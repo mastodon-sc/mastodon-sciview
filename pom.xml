@@ -33,7 +33,8 @@
 		<dependency>
 			<groupId>com.github.mastodon-sc</groupId>
 			<artifactId>mastodon</artifactId>
-			<version>5ee37828f4</version>
+<!--			<version>5ee37828f4</version>-->
+			<version>2f1572c</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
@@ -43,7 +44,13 @@
 			<groupId>com.github.scenerygraphics</groupId>
 			<artifactId>sciview</artifactId>
 <!--			<version>7159f8ae</version>-->
-			<version>ac16240</version>
+			<version>9eb458e565</version>
+
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.7.30</version>
 		</dependency>
 		<dependency>
 			<groupId>graphics.scenery</groupId>
