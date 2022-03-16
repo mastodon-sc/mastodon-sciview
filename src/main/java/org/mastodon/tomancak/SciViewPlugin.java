@@ -2,6 +2,8 @@ package org.mastodon.tomancak;
 
 import bdv.viewer.ConverterSetups;
 import bdv.viewer.SourceAndConverter;
+import graphics.scenery.DefaultNode;
+import graphics.scenery.RichNode;
 import graphics.scenery.volumes.Colormap;
 import net.imagej.ImageJ;
 
@@ -156,14 +158,14 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				//DisplayMastodonData.showTransferFunctionDialog(getContext(),v);
 
 				//show spots...
-				final Node spotsNode = new Node("Mastodon spots");
+				final RichNode spotsNode = new RichNode("Mastodon spots");
 				//DISABLED ON 22/04/2021//
 				dmd.centerNodeOnVolume(spotsNode,v); //so that shift+mouse rotates nicely
 				dmd.sv.addNode(spotsNode);
 
 				//...and links
-				final Node linksNode = new Node("Mastodon links");
-				linksNode.setPosition(spotsNode.getPosition());
+				final RichNode linksNode = new RichNode("Mastodon links");
+				linksNode.spatial().setPosition(spotsNode.spatialOrNull().getPosition());
 				dmd.sv.addNode(linksNode);
 				DisplayMastodonData.showSpotsDisplayParamsDialog(getContext(),spotsNode,linksNode,dmd.spotVizuParams,v);
 				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(), dmd.synChoiceParams,pluginAppModel,v);

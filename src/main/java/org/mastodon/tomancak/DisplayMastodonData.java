@@ -3,10 +3,15 @@ package org.mastodon.tomancak;
 import bdv.tools.brightness.ConverterSetup;
 import bdv.viewer.*;
 
-import graphics.scenery.Material;
+
+import graphics.scenery.DefaultNode;
 import graphics.scenery.Node;
+import graphics.scenery.RichNode;
 import graphics.scenery.Sphere;
-import graphics.scenery.Cylinder;
+
+import graphics.scenery.attribute.material.Material;
+import graphics.scenery.attribute.material.DefaultMaterial;
+import graphics.scenery.primitives.Cylinder;
 import graphics.scenery.volumes.TransferFunction;
 import graphics.scenery.volumes.Volume;
 import org.joml.Matrix4f;
@@ -332,7 +337,7 @@ public class DisplayMastodonData {
 
 		void setupEmptyLinks()
 		{
-			linksNodesHub = new Node();
+			linksNodesHub = new DefaultNode();
 			links = new LinkedList<>();
 			minTP = 999999;
 			maxTP = -1;
@@ -425,13 +430,13 @@ public class DisplayMastodonData {
 	float spotRadius = 0.1f;
 
 	public
-	void showSpots(final int timepoint, final Node spotsHubNode, final Node linksHubNode)
+	void showSpots(final int timepoint, final RichNode spotsHubNode, final RichNode linksHubNode)
 	{
 		showSpots(timepoint,spotsHubNode,linksHubNode,null);
 	}
 
 	public
-	void showSpots(final int timepoint, final Node spotsHubNode, final Node linksHubNode, final GraphColorGenerator<Spot, Link> colorGenerator)
+	void showSpots(final int timepoint, final RichNode spotsHubNode, final RichNode linksHubNode, final GraphColorGenerator<Spot, Link> colorGenerator)
 	{
 		SpatialIndex<Spot> spots = pluginAppModel.getAppModel().getModel().getSpatioTemporalIndex().getSpatialIndex(timepoint);
 		final Vector3f hubPos = spotsHubNode.getPosition();
@@ -486,7 +491,7 @@ public class DisplayMastodonData {
 				{
 					//before we set the color from the colorGenerator,
 					//we have to have for sure own material object (not the shared one)
-					if (sph.getMaterial() == sharedMaterialObj) sph.setMaterial(new Material());
+					if (sph.getMaterial() == sharedMaterialObj) sph.setMaterial(new DefaultMaterial());
 					Vector3f rgb = sph.getMaterial().getDiffuse();
 					rgb.x = (float)((rgbInt >> 16) & 0xFF) / 255f;
 					rgb.y = (float)((rgbInt >>  8) & 0xFF) / 255f;
@@ -528,14 +533,14 @@ public class DisplayMastodonData {
 	}
 
 	public
-	void updateSpotPosition(final Node spotsGatheringNode, final Spot updatedSpot)
+	void updateSpotPosition(final RichNode spotsGatheringNode, final Spot updatedSpot)
 	{
 		if(!synChoiceParams.synSpotLoc)
 			return;
 		final Node spotNode = sv.find(updatedSpot.getLabel()); //KILLER! TODO
 		if (spotNode != null)
 		{
-			final Vector3f hubPos = spotsGatheringNode.getPosition();
+			final Vector3f hubPos = spotsGatheringNode.spatial().getPosition();
 			updatedSpot.localize(pos);
 			spotNode.setPosition( toLocalCoords(pos,hubPos) ); //adjust coords to the current volume scale
 			spotNode.setNeedsUpdate(true);
@@ -585,7 +590,7 @@ public class DisplayMastodonData {
 	}
 
 	public
-	void centerNodeOnVolume(final Node n, final Volume v)
+	void centerNodeOnVolume(final RichNode n, final Volume v)
 	{
 		//short cut to the Source of this Volume
 		final Source<?> volumeAsSource = v.getViewerState().getSources().get(0).getSpimSource();
@@ -598,7 +603,7 @@ public class DisplayMastodonData {
 		final double[] ratios = new double[3];
 		calculateDisplayVoxelRatioAlaBDV(ratios, volumeAsSource);
 
-		n.setPosition(new double[] { 0.5*scale*dims[0]*ratios[0], -0.5*scale*dims[1]*ratios[1], -0.5*scale*dims[2]*ratios[2] });
+		n.spatial().setPosition(new double[] { 0.5*scale*dims[0]*ratios[0], -0.5*scale*dims[1]*ratios[1], -0.5*scale*dims[2]*ratios[2] });
 	}
 
 	public static
