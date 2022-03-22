@@ -60,6 +60,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 		menuTexts.put( SCIVIEW_CONNECTOR, "Start SciView" );
 	}
 
+
 	@Override
 	public Map< String, String > getMenuTexts()
 	{
