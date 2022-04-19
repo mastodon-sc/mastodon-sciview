@@ -9,6 +9,8 @@ import net.imagej.ImageJ;
 
 
 import net.imglib2.type.numeric.ARGBType;
+import org.mastodon.mamut.model.ModelGraph;
+import org.ojalgo.type.keyvalue.StringToInt;
 import sc.iview.SciView;
 import graphics.scenery.Node;
 import graphics.scenery.volumes.Volume;
@@ -37,6 +39,7 @@ import org.scijava.event.EventService;
 import org.scijava.event.EventHandler;
 import sc.iview.event.NodeActivatedEvent;
 import org.joml.Vector3f;
+import sc.iview.event.NodeAddedEvent;
 import sc.iview.event.NodeChangedEvent;
 
 import javax.swing.*;
@@ -281,11 +284,35 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				}
 
 				@EventHandler
+				public void onEvent(NodeAddedEvent event) {
+					if (event.getNode() == null) return;
+					if (event.getNode().getName().contains("trackpoint_"))
+					{
+						String name = event.getNode().getName();
+						Vector3f pos = event.getNode().spatialOrNull().getPosition();
+						pos = new Vector3f(1.089f, 1.781f,0.005f);
+						System.out.println(name+ " is detected");
+						String[] tp = name.split("_");
+						Vector3f posSpotsNode = dmd.spotsNodePos;
+						System.out.println("posSpotsNode: " + posSpotsNode);
+						pos = dmd.toGlobalCoords(pos, posSpotsNode);
+						System.out.println("detected location: " + pos );
+						final ModelGraph graph = pluginAppModel.getAppModel().getModel().getGraph();
+						final Spot spot = graph.addVertex().init( Integer.parseInt(tp[1]),
+								new double[] { pos.x, pos.y, pos.z},
+								new double[][] {
+										{ 210, 100, 0 },
+										{ 100, 110, 10 },
+										{ 0, 10, 100 }
+								} );
+					}
+				}
+
+				@EventHandler
 				public void onEvent(NodeChangedEvent event) {
 					if (event.getNode() == null) return;
 					if (event.getNode().getName().equals("volume"))
 					{
-
 						if(!dmd.synChoiceParams.synColor||!dmd.synChoiceParams.synDisRange)
 							return;
 

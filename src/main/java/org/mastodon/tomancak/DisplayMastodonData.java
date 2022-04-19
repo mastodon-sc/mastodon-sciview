@@ -12,6 +12,8 @@ import graphics.scenery.Sphere;
 import graphics.scenery.attribute.material.Material;
 import graphics.scenery.attribute.material.DefaultMaterial;
 import graphics.scenery.primitives.Cylinder;
+import graphics.scenery.volumes.BufferedVolume;
+import graphics.scenery.volumes.Colormap;
 import graphics.scenery.volumes.TransferFunction;
 import graphics.scenery.volumes.Volume;
 import org.joml.Matrix4f;
@@ -55,7 +57,7 @@ public class DisplayMastodonData {
 	//Mastodon connection
 	final MamutPluginAppModel pluginAppModel;
 	final FocusedBdvWindow controllingBdvWindow = new FocusedBdvWindow();
-
+	public Vector3f spotsNodePos;
 	//the overall coordinate scale factor from Mastodon to SciView coords
 	//NB: the smaller scale the better! with scale 1, pixels look terrible....
 	public static
@@ -180,16 +182,23 @@ public class DisplayMastodonData {
 		v.setName(volumeName);
 
 		v.setWantsComposeModel(false); //makes position,scale,rotation be ignored, also pxToWrld scale is ignored
-		v.setModel( new Matrix4f(scale,0,0,0,
+
+		v.spatial().setModel( new Matrix4f(scale,0,0,0,
 		                         0,-scale,0,0,
 		                         0,0,-scale,0,
 		                         0,0,0,1) );
+
+
 		v.setNeedsUpdateWorld(true);
 		//now the volume's diagonal in world coords is now:
 		//      [0,0,0] -> [scale*origXSize, -scale*origYSize, -scale*origZSize]
 
 		v.getViewerState().setInterpolation(Interpolation.NLINEAR);
 		v.getVolumeManager().requestRepaint();
+
+		System.out.println("volumes.getDimension: " + v.getDimensions(0,0,0));
+		System.out.println("volumes.model: " + v.getModel());
+//		System.out.println("volumes.world.matrix: " + v.spatial().getWorld());
 
 
 		return v;
@@ -430,9 +439,9 @@ public class DisplayMastodonData {
 	float spotRadius = 0.1f;
 
 	public
-	void showSpots(final int timepoint, final RichNode spotsHubNode, final RichNode linksHubNode)
+	void showSpots(final int timepoint, final RichNode spotsNode, final RichNode linksNode)
 	{
-		showSpots(timepoint,spotsHubNode,linksHubNode,null);
+		showSpots(timepoint,spotsNode,linksNode,null);
 	}
 
 	public
@@ -482,8 +491,9 @@ public class DisplayMastodonData {
 
 			//setup the spot
 			spot.localize(pos);
+			System.out.println(pos[0] + " " + pos[1] + " " + pos[2]);
 			sph.setPosition( toLocalCoords(pos,hubPos) ); //adjust coords to the current volume scale
-
+			System.out.println(sph.spatial().getPosition());
 			if (colorGenerator != null)
 			{
 				int rgbInt = colorGenerator.color(spot);
@@ -533,14 +543,14 @@ public class DisplayMastodonData {
 	}
 
 	public
-	void updateSpotPosition(final RichNode spotsGatheringNode, final Spot updatedSpot)
+	void updateSpotPosition(final RichNode spotsNode, final Spot updatedSpot)
 	{
 		if(!synChoiceParams.synSpotLoc)
 			return;
 		final Node spotNode = sv.find(updatedSpot.getLabel()); //KILLER! TODO
 		if (spotNode != null)
 		{
-			final Vector3f hubPos = spotsGatheringNode.spatial().getPosition();
+			final Vector3f hubPos = spotsNode.spatial().getPosition();
 			updatedSpot.localize(pos);
 			spotNode.setPosition( toLocalCoords(pos,hubPos) ); //adjust coords to the current volume scale
 			spotNode.setNeedsUpdate(true);
@@ -557,6 +567,23 @@ public class DisplayMastodonData {
 	{
 		coord.mul( +scale, -scale, -scale );
 		coord.sub( relevantCentre );
+		return coord;
+	}
+
+	public static
+	Vector3f toGlobalCoords(final Vector3f coord, final Vector3f relevantCentre)
+	{
+		coord.add( relevantCentre );
+		coord.div( +scale, -scale, -scale );
+		return coord;
+	}
+
+	public static
+	float[] toGloablCoords(final float[] coord, final Vector3f relevantCentre)
+	{
+		coord[0] = (coord[0] + relevantCentre.x)/(scale);
+		coord[1] = (coord[1] + relevantCentre.y)/(-scale);
+		coord[2] = (coord[2] + relevantCentre.z)/(-scale) ;
 		return coord;
 	}
 
@@ -598,19 +625,23 @@ public class DisplayMastodonData {
 		//image size in number of pixels per axis/dimension
 		final long[] dims = new long[3];
 		volumeAsSource.getSource(0,0).dimensions(dims);
+		System.out.println("dims: " + dims[0] +" "+dims[1] +" "+dims[2]);
 
 		//pixel size in units of the smallest-pixel-size
 		final double[] ratios = new double[3];
 		calculateDisplayVoxelRatioAlaBDV(ratios, volumeAsSource);
 
 		n.spatial().setPosition(new double[] { 0.5*scale*dims[0]*ratios[0], -0.5*scale*dims[1]*ratios[1], -0.5*scale*dims[2]*ratios[2] });
+		spotsNodePos = n.spatial().getPosition() ;
+		System.out.println("spotsNodepos: " + spotsNodePos);
 	}
+
 
 	public static
 	void calculateDisplayVoxelRatioAlaBDV(final double[] vxAxisRatio, final Source<?> forThisSource)
 	{
 		forThisSource.getVoxelDimensions().dimensions(vxAxisRatio);
-
+//		System.out.println("vxAxisRatio:" + vxAxisRatio[0] + " " + vxAxisRatio[1] + " " + vxAxisRatio[2]);
 		double minLength = vxAxisRatio[0];
 		for (int i = 1; i < vxAxisRatio.length; ++i) minLength = Math.min( vxAxisRatio[i], minLength );
 		for (int i = 0; i < vxAxisRatio.length; ++i) vxAxisRatio[i] /= minLength;
