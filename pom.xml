@@ -54,7 +54,7 @@
 
 	<!-- TODO: Needs to be updated -->
 	<scm>
-		<connection>scm:git:git:github.com/mastodon-sc/mastodon-sciview</connection>
+		<connection>scm:git:https:github.com/mastodon-sc/mastodon-sciview</connection>
 		<developerConnection>scm:git:git@github.com:mastodon-sc/mastodon-sciview</developerConnection>
 		<tag>HEAD</tag>
 		<url>https://github.com/mastodon-sc/mastodon-sciview</url>
