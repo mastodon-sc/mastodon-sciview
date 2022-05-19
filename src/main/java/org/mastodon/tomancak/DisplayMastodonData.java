@@ -61,7 +61,7 @@ public class DisplayMastodonData {
 	//the overall coordinate scale factor from Mastodon to SciView coords
 	//NB: the smaller scale the better! with scale 1, pixels look terrible....
 	public static
-	final float scale = 0.01f;
+	final float scale = 0.02f;
 
 	//SciView connection + EventService that is used to update SciView's inspector panel
 	SciView sv = null;
@@ -181,12 +181,15 @@ public class DisplayMastodonData {
 
 		v.setName(volumeName);
 
-		v.setWantsComposeModel(false); //makes position,scale,rotation be ignored, also pxToWrld scale is ignored
-
-		v.spatial().setModel( new Matrix4f(scale,0,0,0,
-		                         0,-scale,0,0,
-		                         0,0,-scale,0,
-		                         0,0,0,1) );
+		v.spatial().setPosition(new Vector3f(0.0f, 2.0f, 0.0f));
+		v.spatial().setScale(new Vector3f(0.5f, 0.5f,7.5f));
+		v.setColormap(Colormap.get("jet"));
+//		v.setWantsComposeModel(false); //makes position,scale,rotation be ignored, also pxToWrld scale is ignored
+//
+//		v.spatial().setModel( new Matrix4f(scale,0,0,0,
+//		                         0,-scale,0,0,
+//		                         0,0,-scale,0,
+//		                         0,0,0,1) );
 
 
 		v.setNeedsUpdateWorld(true);

@@ -43,16 +43,17 @@
 		<dependency>
 			<groupId>com.github.scenerygraphics</groupId>
 			<artifactId>sciview</artifactId>
-			<version>efe9902ab7</version>>
+			<version>6cc9938</version>>
+
 <!--			<groupId>sc.iview</groupId>-->
 <!--			<artifactId>sciview</artifactId>-->
-<!--			<version>0.2.0-beta-9-SNAPSHOT-test-4</version>-->
-			<exclusions>
-				<exclusion>
-					<groupId>org.apache.logging.log4j</groupId>
-					<artifactId>log4j-slf4j-impl</artifactId>
-				</exclusion>
-			</exclusions>
+<!--			<version>0.2.0-beta-9-SNAPSHOT-test-5</version>-->
+<!--			<exclusions>-->
+<!--				<exclusion>-->
+<!--					<groupId>org.apache.logging.log4j</groupId>-->
+<!--					<artifactId>log4j-slf4j-impl</artifactId>-->
+<!--				</exclusion>-->
+<!--			</exclusions>-->
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
