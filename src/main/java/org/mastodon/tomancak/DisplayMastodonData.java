@@ -4,10 +4,7 @@ import bdv.tools.brightness.ConverterSetup;
 import bdv.viewer.*;
 
 
-import graphics.scenery.DefaultNode;
-import graphics.scenery.Node;
-import graphics.scenery.RichNode;
-import graphics.scenery.Sphere;
+import graphics.scenery.*;
 
 import graphics.scenery.attribute.material.Material;
 import graphics.scenery.attribute.material.DefaultMaterial;
@@ -44,6 +41,7 @@ import sc.iview.commands.edit.add.AddOrientationCompass;
 import sc.iview.commands.view.SetTransferFunction;
 
 import javax.swing.*;
+import javax.vecmath.GVector;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.*;
@@ -57,11 +55,14 @@ public class DisplayMastodonData {
 	//Mastodon connection
 	final MamutPluginAppModel pluginAppModel;
 	final FocusedBdvWindow controllingBdvWindow = new FocusedBdvWindow();
-	public Vector3f spotsNodePos;
+
 	//the overall coordinate scale factor from Mastodon to SciView coords
 	//NB: the smaller scale the better! with scale 1, pixels look terrible....
-	public static
-	final float scale = 0.02f;
+
+	public static float scale_x;
+	public static float scale_y;
+	public static float scale_z;
+
 
 	//SciView connection + EventService that is used to update SciView's inspector panel
 	SciView sv = null;
@@ -69,8 +70,6 @@ public class DisplayMastodonData {
 
 	//shared cache of colormaps for volumes (to prevent that they are re-created over and over again)
 	final CachedColorTables volumeColormaps = new CachedColorTables();
-
-
 
 
 	public
@@ -147,7 +146,8 @@ public class DisplayMastodonData {
 
 	public static
 	String volumeName = "volume";
-
+	public static
+	float volumeHeight = 0.0f;
 
 	// ============================================================================================
 
@@ -162,7 +162,6 @@ public class DisplayMastodonData {
 		final SourceAndConverter<?> sac = mastodonPlugin.getAppModel().getSharedBdvData().getSources().get(0);
 		int np =mastodonPlugin.getAppModel().getSharedBdvData().getNumTimepoints();
 		final Volume v = (Volume)sv.addVolume((SourceAndConverter)sac,np,volumeName,1.0f, 1.0f, 1.0f);
-
 
 		//adjust the transfer function to a "diagonal"
 		setTransferFunction(v);
@@ -181,28 +180,25 @@ public class DisplayMastodonData {
 
 		v.setName(volumeName);
 
-		v.spatial().setPosition(new Vector3f(0.0f, 2.0f, 0.0f));
-		v.spatial().setScale(new Vector3f(0.5f, 0.5f,7.5f));
-		v.setColormap(Colormap.get("jet"));
-//		v.setWantsComposeModel(false); //makes position,scale,rotation be ignored, also pxToWrld scale is ignored
-//
-//		v.spatial().setModel( new Matrix4f(scale,0,0,0,
-//		                         0,-scale,0,0,
-//		                         0,0,-scale,0,
-//		                         0,0,0,1) );
 
+		v.spatial().setWantsComposeModel(true); //makes position,scale,rotation be ignored, also pxToWrld scale is ignored
+//		scale_x = 1f;
+//		scale_y = 1f;
+//		scale_z = 1f;
+		scale_x = 0.5f;
+		scale_y = 0.5f;
+		scale_z = 7.5f;
+		v.spatial().setScale(new Vector3f(scale_x,scale_y,scale_z));
+		//v.setColormap(Colormap.get("jet"));
 
-		v.setNeedsUpdateWorld(true);
-		//now the volume's diagonal in world coords is now:
-		//      [0,0,0] -> [scale*origXSize, -scale*origYSize, -scale*origZSize]
-
+		v.spatial().setNeedsUpdateWorld(true);
 		v.getViewerState().setInterpolation(Interpolation.NLINEAR);
 		v.getVolumeManager().requestRepaint();
 
-		System.out.println("volumes.getDimension: " + v.getDimensions(0,0,0));
+		System.out.println("volumes.getDimension: " + v.getDimensions());
 		System.out.println("volumes.model: " + v.getModel());
 //		System.out.println("volumes.world.matrix: " + v.spatial().getWorld());
-
+		volumeHeight = v.getDimensions().y;
 
 		return v;
 	}
@@ -281,7 +277,7 @@ public class DisplayMastodonData {
 	float linkRadius = 0.01f;
 
 	public
-	class SphereWithLinks extends Sphere
+	class SphereWithLinks extends Icosphere
 	{
 		SphereWithLinks(float radius, int segments)
 		{
@@ -297,20 +293,21 @@ public class DisplayMastodonData {
 		void addLink(final Spot from, final Spot to)
 		{
 			from.localize(pos);
-			toLocalCoords( posF.set(pos), linksNodesHub.getParent().getPosition() );
+			toVolumeCoords( posF.set(pos) );
 
 			to.localize(pos);
-			toLocalCoords( posT.set(pos), linksNodesHub.getParent().getPosition() );
+			toVolumeCoords( posT.set(pos));
 			posT.sub( posF );
 
 			//NB: posF is base of the "vector" link, posT is the "vector" link itself
 			Cylinder node = new Cylinder(linkRadius, posT.length(), 8);
-			node.getScale().set( spotVizuParams.linkSize,1,spotVizuParams.linkSize );
-			node.setRotation( new Quaternionf().rotateTo( new Vector3f(0,1,0), posT ).normalize() );
-			node.setPosition( new Vector3f(posF) );
-			node.setName(from.getLabel() + " --> " + to.getLabel());
-			node.setMaterial( linksNodesHub.getMaterial() );
+			node.spatial().getScale().set( spotVizuParams.linkSize,1,spotVizuParams.linkSize );
+			node.spatial().setRotation( new Quaternionf().rotateTo( new Vector3f(0,1,0), posT ).normalize() );
+			node.spatial().setPosition( new Vector3f(posF) );
 
+			node.setName(from.getLabel() + " --> " + to.getLabel());
+			//node.setMaterial( linksNodesHub.getMaterial() );
+			System.out.println("add node : " + node.getName());
 			linksNodesHub.addChild( node );
 			links.add( new LinkNode(node,from.getTimepoint(),to.getTimepoint()) );
 
@@ -349,7 +346,7 @@ public class DisplayMastodonData {
 
 		void setupEmptyLinks()
 		{
-			linksNodesHub = new DefaultNode();
+			linksNodesHub = new RichNode();
 			links = new LinkedList<>();
 			minTP = 999999;
 			maxTP = -1;
@@ -368,6 +365,7 @@ public class DisplayMastodonData {
 		public
 		void updateLinks(final int TPsInPast, final int TPsAhead)
 		{
+			System.out.println("updatelinks!");
 			clearLinksOutsideRange(refSpot.getTimepoint(),refSpot.getTimepoint());
 			backwardSearch(refSpot, refSpot.getTimepoint()-TPsInPast);
 			forwardSearch( refSpot, refSpot.getTimepoint()+TPsAhead);
@@ -377,12 +375,16 @@ public class DisplayMastodonData {
 		private
 		void forwardSearch(final Spot spot, final int TPtill)
 		{
-			if (spot.getTimepoint() >= TPtill) return;
+			System.out.println("spot.getTimepoint():"+spot.getTimepoint());
+			System.out.println("TPtill:"+TPtill);
 
+			if (spot.getTimepoint() >= TPtill) return;
+			System.out.println("forward search!");
 			//enumerate all forward links
 			final Spot s = spot.getModelGraph().vertexRef();
 			for (Link l : spot.incomingEdges())
 			{
+				System.out.println("forward search: incoming edges");
 				if (l.getSource(s).getTimepoint() > spot.getTimepoint() && s.getTimepoint() <= TPtill)
 				{
 					addLink(spot,s);
@@ -391,6 +393,7 @@ public class DisplayMastodonData {
 			}
 			for (Link l : spot.outgoingEdges())
 			{
+				System.out.println("forward search: outgoing edges");
 				if (l.getTarget(s).getTimepoint() > spot.getTimepoint() && s.getTimepoint() <= TPtill)
 				{
 					addLink(spot,s);
@@ -403,12 +406,15 @@ public class DisplayMastodonData {
 		private
 		void backwardSearch(final Spot spot, final int TPfrom)
 		{
+			System.out.println("spot.getTimepoint():"+spot.getTimepoint());
+			System.out.println("TPfrom:"+TPfrom);
 			if (spot.getTimepoint() <= TPfrom) return;
-
+			System.out.println("backward search!");
 			//enumerate all backward links
 			final Spot s = spot.getModelGraph().vertexRef();
 			for (Link l : spot.incomingEdges())
 			{
+				System.out.println("backward search: incoming edges");
 				if (l.getSource(s).getTimepoint() < spot.getTimepoint() && s.getTimepoint() >= TPfrom)
 				{
 					addLink(s,spot);
@@ -417,6 +423,7 @@ public class DisplayMastodonData {
 			}
 			for (Link l : spot.outgoingEdges())
 			{
+				System.out.println("backward search: outgoing edges");
 				if (l.getTarget(s).getTimepoint() < spot.getTimepoint() && s.getTimepoint() >= TPfrom)
 				{
 					addLink(s,spot);
@@ -439,7 +446,7 @@ public class DisplayMastodonData {
 	// ============================================================================================
 
 	public
-	float spotRadius = 0.1f;
+	float spotRadius = 10f;
 
 	public
 	void showSpots(final int timepoint, final RichNode spotsNode, final RichNode linksNode)
@@ -474,7 +481,7 @@ public class DisplayMastodonData {
 
 		for (Spot spot : spots)
 		{
-			System.out.println(spot);
+			System.out.println("spot: "+spot.toString());
 			//find a Sphere to represent this spot
 			SphereWithLinks sph;
 			if (existingNodes.hasNext())
@@ -486,16 +493,19 @@ public class DisplayMastodonData {
 			else
 			{
 				//create a new one
-				sph = new SphereWithLinks(spotRadius, 8);
-				sph.getScale().set( spotVizuParams.spotSize );
+				sph = new SphereWithLinks(spotRadius, 2);
+				sph.spatial().getScale().set( spotVizuParams.spotSize );
 				sph.setupEmptyLinks();
+				//
+				sph.spatial().setScale(new Vector3f(1.0f,1.0f,1.0f));
 				extraNodes.add(sph);
 			}
 
 			//setup the spot
 			spot.localize(pos);
 			System.out.println(pos[0] + " " + pos[1] + " " + pos[2]);
-			sph.setPosition( toLocalCoords(pos,hubPos) ); //adjust coords to the current volume scale
+			sph.spatial().setPosition( toVolumeCoords(pos) ); //adjust coords to the current volume scale
+
 			System.out.println(sph.spatial().getPosition());
 			if (colorGenerator != null)
 			{
@@ -531,6 +541,7 @@ public class DisplayMastodonData {
 
 			sph.registerNewSpot(spot);
 			sph.updateLinks(spotVizuParams.link_TPsInPast, spotVizuParams.link_TPsAhead);
+			System.out.println("finish updatelink");
 		}
 
 		//register the extra new spots (only after they are fully prepared)
@@ -555,8 +566,8 @@ public class DisplayMastodonData {
 		{
 			final Vector3f hubPos = spotsNode.spatial().getPosition();
 			updatedSpot.localize(pos);
-			spotNode.setPosition( toLocalCoords(pos,hubPos) ); //adjust coords to the current volume scale
-			spotNode.setNeedsUpdate(true);
+			spotNode.spatialOrNull().setPosition( toVolumeCoords(pos) ); //adjust coords to the current volume scale
+			spotNode.spatialOrNull().setNeedsUpdate(true);
 		}
 	}
 
@@ -566,36 +577,30 @@ public class DisplayMastodonData {
 	// ============================================================================================
 
 	public static
-	Vector3f toLocalCoords(final Vector3f coord, final Vector3f relevantCentre)
+	Vector3f toVolumeCoords(final Vector3f coord)
 	{
-		coord.mul( +scale, -scale, -scale );
-		coord.sub( relevantCentre );
+		coord.y = volumeHeight - coord.y;
 		return coord;
 	}
 
 	public static
-	Vector3f toGlobalCoords(final Vector3f coord, final Vector3f relevantCentre)
+	Vector3f toBDVCoords(final Vector3f coord)
 	{
-		coord.add( relevantCentre );
-		coord.div( +scale, -scale, -scale );
+		coord.y = volumeHeight - coord.y;
 		return coord;
 	}
 
 	public static
-	float[] toGloablCoords(final float[] coord, final Vector3f relevantCentre)
+	float[] toBDVCoords(final float[] coord)
 	{
-		coord[0] = (coord[0] + relevantCentre.x)/(scale);
-		coord[1] = (coord[1] + relevantCentre.y)/(-scale);
-		coord[2] = (coord[2] + relevantCentre.z)/(-scale) ;
+		coord[1] = volumeHeight- coord[1];
 		return coord;
 	}
 
 	public static
-	float[] toLocalCoords(final float[] coord, final Vector3f relevantCentre)
+	float[] toVolumeCoords(final float[] coord)
 	{
-		coord[0] = +scale * coord[0]  - relevantCentre.x;
-		coord[1] = -scale * coord[1]  - relevantCentre.y;
-		coord[2] = -scale * coord[2]  - relevantCentre.z;
+		coord[1] = volumeHeight -coord[1];
 		return coord;
 	}
 
@@ -619,48 +624,6 @@ public class DisplayMastodonData {
 		v.setColormap( colormapsCache.getColormap(rgba) );
 	}
 
-	public
-	void centerNodeOnVolume(final RichNode n, final Volume v)
-	{
-		//short cut to the Source of this Volume
-		final Source<?> volumeAsSource = v.getViewerState().getSources().get(0).getSpimSource();
-
-		//image size in number of pixels per axis/dimension
-		final long[] dims = new long[3];
-		volumeAsSource.getSource(0,0).dimensions(dims);
-		System.out.println("dims: " + dims[0] +" "+dims[1] +" "+dims[2]);
-
-		//pixel size in units of the smallest-pixel-size
-		final double[] ratios = new double[3];
-		calculateDisplayVoxelRatioAlaBDV(ratios, volumeAsSource);
-
-		n.spatial().setPosition(new double[] { 0.5*scale*dims[0]*ratios[0], -0.5*scale*dims[1]*ratios[1], -0.5*scale*dims[2]*ratios[2] });
-		spotsNodePos = n.spatial().getPosition() ;
-		System.out.println("spotsNodepos: " + spotsNodePos);
-	}
-
-
-	public static
-	void calculateDisplayVoxelRatioAlaBDV(final double[] vxAxisRatio, final Source<?> forThisSource)
-	{
-		forThisSource.getVoxelDimensions().dimensions(vxAxisRatio);
-//		System.out.println("vxAxisRatio:" + vxAxisRatio[0] + " " + vxAxisRatio[1] + " " + vxAxisRatio[2]);
-		double minLength = vxAxisRatio[0];
-		for (int i = 1; i < vxAxisRatio.length; ++i) minLength = Math.min( vxAxisRatio[i], minLength );
-		for (int i = 0; i < vxAxisRatio.length; ++i) vxAxisRatio[i] /= minLength;
-	}
-
-	// ============================================================================================
-
-	public static
-	void showTransferFunctionDialog(final Context ctx, final Volume v)
-	{
-		//start the TransferFunction modifying dialog
-		ctx.getService(CommandService.class).run(SetTransferFunction.class,true,
-				"sciView",v.getHub().getApplication(),
-				//NB: luckily, getApplication() returns SciView instance
-				"volume",v);
-	}
 
 	public static
 	void showSynchronizeChoiceDialog(final Context ctx,final SynchronizeChoiceDialog.ParamsWrapper synChoiceParams,final MamutPluginAppModel mamutPluginAppModel
@@ -668,7 +631,7 @@ public class DisplayMastodonData {
 	{
 		//start the TransferFunction modifying dialog
 		ctx.getService(CommandService.class).run(SynchronizeChoiceDialog.class,true,
-				"params",synChoiceParams,"mamutPluginAppModel",mamutPluginAppModel, "volume",volume,"sciView",volume.getHub().getApplication()
+				"params",synChoiceParams,"mamutPluginAppModel",mamutPluginAppModel, "volume",volume,"sciView",volume.getVolumeManager().getHub().getApplication()
 		);
 	}
 
@@ -681,22 +644,9 @@ public class DisplayMastodonData {
 		ctx.getService(CommandService.class).run(SpotsDisplayParamsDialog.class,true,
 				"params",vizuParams,
 				"spotsGatheringNode",spots, "linksGatheringNode",links,
-				 "volume",volume,"sciView",volume.getHub().getApplication());
+				 "volume",volume,"sciView",volume.volumeManager.getHub().getApplication());
 	}
 
-	public static
-	void showCompassAxes(final DisplayMastodonData dmd, final Vector3f atThisCenter)
-	{
-		dmd.sv.getScijavaContext()
-			.getService(CommandService.class)
-			.run(AddOrientationCompass.class,true,
-				"sciView",dmd.sv,
-				"axisLength",0.1f, "axisBarRadius",0.001f,
-				"attachToCam",true, "showInTheScene",false);
 
-		//NB: we're not displaying axes-compass in the data, so we don't use this now
-		//compassMainNode.setPosition(atThisCenter);
-		//compassMainNode.getScale().set(scale,-scale,-scale);
-	}
 
 }

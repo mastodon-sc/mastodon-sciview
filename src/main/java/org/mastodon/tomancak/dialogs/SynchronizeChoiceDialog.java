@@ -34,9 +34,7 @@ public class SynchronizeChoiceDialog extends InteractiveCommand{
 
         public boolean synTimestamp = true;
         public boolean synSpotLoc = true;
-
     }
-
 
     @Parameter(persist = false)
     private MamutPluginAppModel mamutPluginAppModel;
@@ -73,9 +71,7 @@ public class SynchronizeChoiceDialog extends InteractiveCommand{
         params.synDisRange=this.synDisRange;
         params.synTimestamp=this.synTimestamp;
         params.synSpotLoc=this.synSpotLoc;
-
     }
-
 
     private
     void updateVolumeSetting()
@@ -96,8 +92,6 @@ public class SynchronizeChoiceDialog extends InteractiveCommand{
 //        System.out.println("Run is called");
         final JFrame pbframe = new JFrame("locate the selected points(sciview) in Mastodon");
         pbframe.setLayout(new BoxLayout(pbframe.getContentPane(), BoxLayout.Y_AXIS));
-
-
         myGroupHandle = mamutPluginAppModel.getAppModel().getGroupManager().createGroupHandle();
         pbframe.add( new GroupLocksPanel( myGroupHandle ) );
         pbframe.setMinimumSize(new Dimension(300, 180));

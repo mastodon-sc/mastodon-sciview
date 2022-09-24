@@ -21,13 +21,14 @@ import java.util.List;
 @Plugin(type = Command.class, name = "Spots Display Parameters Dialog")
 public class SpotsDisplayParamsDialog extends InteractiveCommand {
 	public static class ParamsWrapper {
-		public float spotSize = 1.0f;
-		public float spotAlpha = 1.0f;
+		public float spotSize;
+		public float spotAlpha;
 
-		public float linkSize = 1.0f;
-		public float linkAlpha = 1.0f;
-		public int link_TPsInPast = 0;
-		public int link_TPsAhead = 0;
+		public float linkSize;
+		public float linkAlpha;
+
+		public int link_TPsInPast;
+		public int link_TPsAhead;
 	}
 
 	@Parameter(persist = false)
@@ -43,7 +44,7 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand {
 	private Node linksGatheringNode;
 
 	@Parameter(label = "Spots size", style = NumberWidget.SLIDER_STYLE,
-	           min = "0.1", max = "10.0", stepSize = "0.05", callback = "adjustSpotSize")
+	           min = "0.1", max = "10.0", stepSize = "0.01", callback = "adjustSpotSize")
 	private float spotSize = 1.0f;
 
 	@Parameter(label = "Spots alpha", style = NumberWidget.SLIDER_STYLE,
@@ -53,13 +54,13 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand {
 	private
 	void adjustSpotSize()
 	{
-		System.out.println("adjust spot size is called");
+		//System.out.println("adjust spot size is called");
 		//tell back to our caller about the new value of this attribute
 		params.spotSize = spotSize;
 
 		for (Node s : spotsGatheringNode.getChildren())
-			s.getScale().set(spotSize,spotSize,spotSize);
-		spotsGatheringNode.updateWorld(true,true);
+			s.spatialOrNull().getScale().set(spotSize,spotSize,spotSize);
+		spotsGatheringNode.spatialOrNull().updateWorld(true,true);
 	}
 
 	private
@@ -90,8 +91,8 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand {
 
 		for (Node links : linksGatheringNode.getChildren()) //over tracks
 			for (Node c : links.getChildren())              //over links of a track
-				c.getScale().set(linkSize,1,linkSize);
-		linksGatheringNode.updateWorld(true,true);
+				c.spatialOrNull().getScale().set(linkSize,1,linkSize);
+		linksGatheringNode.spatialOrNull().updateWorld(true,true);
 	}
 
 	private
@@ -108,11 +109,11 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand {
 
 	@Parameter(label = "Show past links", style = NumberWidget.SLIDER_STYLE,
 	           min = "0", max = "100", stepSize = "1", callback = "adjustLinkCounts")
-	private int link_TPsInPast = 0;
+	private int link_TPsInPast = 1;
 
 	@Parameter(label = "Show future links", style = NumberWidget.SLIDER_STYLE,
 	           min = "0", max = "100", stepSize = "1", callback = "adjustLinkCounts")
-	private int link_TPsAhead = 0;
+	private int link_TPsAhead = 1;
 
 	private
 	void adjustLinkCounts()
@@ -148,6 +149,10 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand {
 	@Parameter(persist = false)
 	private Volume volume;
 
+
+
+
+
 	@Override
 	public
 	void run() {
@@ -156,7 +161,8 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand {
 		list.add("spotAlpha");
 		list.add("linkSize");
 		list.add("linkAlpha");
-
+		list.add("link_TPsInPast");
+		list.add("link_TPsAhead");
 		sciView.attachCustomPropertyUIToNode(volume,new CustomPropertyUI(this,list));
 	}
 }

@@ -103,7 +103,6 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 	}
 
 	private MamutPluginAppModel pluginAppModel;
-	private MamutAppModel appModel;
 
 	@Override
 	public void setAppPluginModel( final MamutPluginAppModel model )
@@ -124,18 +123,16 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 		startSciViewConnectorAction.setEnabled( appModel != null );
 	}
 
-
 	private void startSciViewConnector()
 	{
 		new Thread("Mastodon's SciView")
 		{
 			final DisplayMastodonData dmd = new DisplayMastodonData(pluginAppModel);
+			Spot previousSpot =null;
 			@Override
 			public void run()
 			{
-//				final DisplayMastodonData dmd = new DisplayMastodonData(pluginAppModel);
 				dmd.controllingBdvWindow.setupFrom(pluginAppModel);
-
 				try {
 					dmd.sv = SciView.create();
 					dmd.sv.setInterpreterWindowVisibility(false);
@@ -153,23 +150,17 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				System.out.println("Found an event service: " + dmd.events);
 
 				//show full volume
-				/* //DISABLED ON 22/04/2021//*/
 				Volume v = dmd.showTimeSeries();
 				dmd.makeSciViewReadBdvSetting(v);
 				dmd.makeBdvReadSciViewSetting(v);
 
-				//DisplayMastodonData.showTransferFunctionDialog(getContext(),v);
 
 				//show spots...
 				final RichNode spotsNode = new RichNode("Mastodon spots");
-				//DISABLED ON 22/04/2021//
-				dmd.centerNodeOnVolume(spotsNode,v); //so that shift+mouse rotates nicely
-				dmd.sv.addNode(spotsNode);
-
+				v.addChild(spotsNode);
 				//...and links
 				final RichNode linksNode = new RichNode("Mastodon links");
-				linksNode.spatial().setPosition(spotsNode.spatialOrNull().getPosition());
-				dmd.sv.addNode(linksNode);
+				v.addChild(linksNode);
 				DisplayMastodonData.showSpotsDisplayParamsDialog(getContext(),spotsNode,linksNode,dmd.spotVizuParams,v);
 				DisplayMastodonData.showSynchronizeChoiceDialog(getContext(), dmd.synChoiceParams,pluginAppModel,v);
 				//make sure both node update synchronously
@@ -179,9 +170,6 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 				//now, the spots are click-selectable in SciView and we want to listen if some spot was
 				//selected/activated and consequently select it in the Mastodon itself
 				dmd.events.subscribe(notifierOfMastodonWhenSpotIsSelectedInSciView);
-
-				//show compass
-				//dmd.showCompassAxes(dmd, spotsNode.getPosition());
 
 				if (dmd.controllingBdvWindow.isThereSome())
 				{
@@ -289,15 +277,12 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 					if (event.getNode().getName().contains("trackpoint_"))
 					{
 						String name = event.getNode().getName();
-						Vector3f pos = event.getNode().spatialOrNull().getPosition();
-						pos = new Vector3f(1.089f, 1.781f,0.005f);
-						System.out.println(name+ " is detected");
+//						System.out.println(name+ " is detected");
 						String[] tp = name.split("_");
-						Vector3f posSpotsNode = dmd.spotsNodePos;
-						System.out.println("posSpotsNode: " + posSpotsNode);
-						pos = dmd.toGlobalCoords(pos, posSpotsNode);
-						System.out.println("detected location: " + pos );
+						Vector3f pos = dmd.toBDVCoords(new Vector3f(Float.parseFloat(tp[2]),Float.parseFloat(tp[3]),Float.parseFloat(tp[4])));
+//						System.out.println("detected location: " + pos );
 						final ModelGraph graph = pluginAppModel.getAppModel().getModel().getGraph();
+
 						final Spot spot = graph.addVertex().init( Integer.parseInt(tp[1]),
 								new double[] { pos.x, pos.y, pos.z},
 								new double[][] {
@@ -305,6 +290,16 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 										{ 100, 110, 10 },
 										{ 0, 10, 100 }
 								} );
+						System.out.println("create spot with label " + spot.getLabel());
+						final Link link = graph.edgeRef();
+
+						if(previousSpot != null)
+						{
+							System.out.println("add edge from " +previousSpot.getLabel() + "to " + spot.getLabel());
+							graph.addEdge(previousSpot,spot,link);
+						}
+						previousSpot = spot;
+						graph.notifyGraphChanged();
 					}
 				}
 
@@ -405,6 +400,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 			//start up our own Fiji/Imagej2
 			final ImageJ ij = new ImageJ();
 			ij.ui().showUI();
+			//final Elephant elephant = (Elephant)ij.command().run(Elephant.class, true).get().getCommand();
 
 			final Mastodon mastodon = (Mastodon)ij.command().run(Mastodon.class, true).get().getCommand();
 			mastodon.setExitOnClose();

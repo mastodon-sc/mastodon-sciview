@@ -29,32 +29,76 @@
 		</license>
 	</licenses>
 
+	<properties>
+		<package-name>org.mastodon</package-name>
+
+		<!-- TODO: Needs to be updated -->
+		<license.licenseName>BSD-2</license.licenseName>
+		<license.projectName>mastodon-sciview</license.projectName>
+		<license.organizationName>Mastodon authors</license.organizationName>
+		<license.copyrightOwners>Tobias Pietzsch</license.copyrightOwners>
+		<license.copyrightOwners>Vladimir Ulman</license.copyrightOwners>
+
+		<!-- NB: Deploy releases to the SciJava Maven repository. -->
+		<!-- TODO: Needs to be updated -->
+		<releaseProfiles>deploy-to-scijava</releaseProfiles>
+
+		<enforcer.skip>true</enforcer.skip>
+		<kotlin.version>1.7.10</kotlin.version>
+		<!--		<scenery.version>35ab1c9</scenery.version>-->
+		<!--		<scenery.version>5de0b1e</scenery.version>-->
+		<!--		<scenery.version>84dfb997fc</scenery.version>-->
+
+		<lwjgl.version>3.3.1</lwjgl.version>
+		<!-- the same as in Mastodon -->
+		<bigdataviewer-core.version>10.2.0</bigdataviewer-core.version>
+
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>com.github.mastodon-sc</groupId>
 			<artifactId>mastodon</artifactId>
-<!--			<version>5ee37828f4</version>-->
+<!--			<version>8adc3d4</version>-->
 			<version>2f1572c</version>
 		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>com.github.elephant-track</groupId>-->
+<!--			<artifactId>elephant-client</artifactId>-->
+<!--			<version>v0.4.0</version>-->
+<!--		</dependency>-->
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>imagej</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.github.scenerygraphics</groupId>
-			<artifactId>sciview</artifactId>
-			<version>6cc9938</version>>
-
-<!--			<groupId>sc.iview</groupId>-->
+<!--			<groupId>graphics.scenery</groupId>-->
 <!--			<artifactId>sciview</artifactId>-->
-<!--			<version>0.2.0-beta-9-SNAPSHOT-test-5</version>-->
-<!--			<exclusions>-->
-<!--				<exclusion>-->
-<!--					<groupId>org.apache.logging.log4j</groupId>-->
-<!--					<artifactId>log4j-slf4j-impl</artifactId>-->
-<!--				</exclusion>-->
-<!--			</exclusions>-->
+<!--			<version>7e4c12847f</version>-->
+			<groupId>sc.iview</groupId>
+			<artifactId>sciview</artifactId>
+			<version>0.2.0-beta-9-SNAPSHOT-test-6</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-slf4j-impl</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-core</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-1.2-api</artifactId>
+				</exclusion>
+			</exclusions>
+
 		</dependency>
+
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
@@ -63,6 +107,7 @@
 		<dependency>
 			<groupId>graphics.scenery</groupId>
 			<artifactId>scenery</artifactId>
+			<version>0.7.0-beta-8-SNAPSHOT-01</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.logging.log4j</groupId>
@@ -75,12 +120,23 @@
 			<artifactId>kotlin-stdlib-jdk8</artifactId>
 			<version>${kotlin.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			<version>2.13.0</version>
+		</dependency>
 
-		<!--		<dependency>-->
-		<!--			<groupId>com.github.scenerygraphics</groupId>-->
-		<!--			<artifactId>scenery</artifactId>-->
-		<!--			<version>9062309b80</version>-->
-		<!--		</dependency>-->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+			<version>2.13.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.13.0</version>
+		</dependency>
 	</dependencies>
 
 	<mailingLists>
@@ -107,30 +163,7 @@
 		<system>None</system>
 	</ciManagement>
 
-	<properties>
-		<package-name>org.mastodon</package-name>
 
-		<!-- TODO: Needs to be updated -->
-		<license.licenseName>BSD-2</license.licenseName>
-		<license.projectName>mastodon-sciview</license.projectName>
-		<license.organizationName>Mastodon authors</license.organizationName>
-		<license.copyrightOwners>Tobias Pietzsch</license.copyrightOwners>
-		<license.copyrightOwners>Vladimir Ulman</license.copyrightOwners>
-
-		<!-- NB: Deploy releases to the SciJava Maven repository. -->
-		<!-- TODO: Needs to be updated -->
-		<releaseProfiles>deploy-to-scijava</releaseProfiles>
-
-		<enforcer.skip>true</enforcer.skip>
-		<kotlin.version>1.5.20</kotlin.version>
-<!--		<scenery.version>35ab1c9</scenery.version>-->
-<!--		<scenery.version>5de0b1e</scenery.version>-->
-		<scenery.version>84dfb997fc</scenery.version>
-
-		<!-- the same as in Mastodon -->
-		<bigdataviewer-core.version>10.2.0</bigdataviewer-core.version>
-
-	</properties>
 
 	<developers>
 		<developer>
@@ -161,10 +194,7 @@
 	<contributors><contributor><name>none</name></contributor></contributors>
 
 	<repositories>
-		<repository>
-			<id>jitpack.io</id>
-			<url>https://jitpack.io</url>
-		</repository>
+
 		<repository>
 			<id>scijava.public</id>
 			<url>https://maven.scijava.org/content/groups/public</url>
@@ -173,6 +203,11 @@
 			<id>it4i</id>
 			<url>https://artifactory.cs.vsb.cz/it4i/</url>
 		</repository>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>
+
 	</repositories>
 
 
