@@ -8,11 +8,15 @@ import graphics.scenery.*;
 
 import graphics.scenery.attribute.material.Material;
 import graphics.scenery.attribute.material.DefaultMaterial;
+import graphics.scenery.controls.TrackerRole;
+import graphics.scenery.controls.behaviours.Selectable;
+import graphics.scenery.controls.behaviours.Touchable;
 import graphics.scenery.primitives.Cylinder;
 import graphics.scenery.volumes.BufferedVolume;
 import graphics.scenery.volumes.Colormap;
 import graphics.scenery.volumes.TransferFunction;
 import graphics.scenery.volumes.Volume;
+import kotlin.Unit;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -37,14 +41,20 @@ import org.scijava.plugin.Plugin;
 import org.scijava.widget.NumberWidget;
 import sc.iview.SciView;
 import sc.iview.event.NodeChangedEvent;
+import sc.iview.event.NodeAddedEvent;
+import sc.iview.event.NodeRemovedEvent;
 import sc.iview.commands.edit.add.AddOrientationCompass;
 import sc.iview.commands.view.SetTransferFunction;
+import graphics.scenery.controls.TrackerRole;
+import graphics.scenery.controls.TrackedDevice;
+
 
 import javax.swing.*;
 import javax.vecmath.GVector;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.scijava.command.Command;
 import org.scijava.command.CommandInfo;
@@ -55,6 +65,8 @@ public class DisplayMastodonData {
 	//Mastodon connection
 	final MamutPluginAppModel pluginAppModel;
 	final FocusedBdvWindow controllingBdvWindow = new FocusedBdvWindow();
+	private ReentrantReadWriteLock lock;
+	private Node selectionStorage = null;
 
 	//the overall coordinate scale factor from Mastodon to SciView coords
 	//NB: the smaller scale the better! with scale 1, pixels look terrible....
@@ -181,13 +193,13 @@ public class DisplayMastodonData {
 		v.setName(volumeName);
 
 
-		v.spatial().setWantsComposeModel(true); //makes position,scale,rotation be ignored, also pxToWrld scale is ignored
-//		scale_x = 1f;
-//		scale_y = 1f;
-//		scale_z = 1f;
-		scale_x = 0.5f;
-		scale_y = 0.5f;
-		scale_z = 7.5f;
+		//v.spatial().setWantsComposeModel(true); //makes position,scale,rotation be ignored, also pxToWrld scale is ignored
+		scale_x = 1f;
+		scale_y = 1f;
+		scale_z = 1f;
+//		scale_x = 0.5f;
+//		scale_y = 0.5f;
+//		scale_z = 7.5f;
 		v.spatial().setScale(new Vector3f(scale_x,scale_y,scale_z));
 		//v.setColormap(Colormap.get("jet"));
 
@@ -287,21 +299,22 @@ public class DisplayMastodonData {
 		public Node linksNodesHub;     // gathering node in sciview -- a links node associated to its spots node
 		public List<LinkNode> links;   // list of links of this spot
 
+		Node selectionStorage = new RichNode();
 		public Spot refSpot = null;
 		public int minTP, maxTP;
 
 		void addLink(final Spot from, final Spot to)
 		{
 			from.localize(pos);
-			toVolumeCoords( posF.set(pos) );
+
 
 			to.localize(pos);
-			toVolumeCoords( posT.set(pos));
+
 			posT.sub( posF );
 
 			//NB: posF is base of the "vector" link, posT is the "vector" link itself
 			Cylinder node = new Cylinder(linkRadius, posT.length(), 8);
-			node.spatial().getScale().set( spotVizuParams.linkSize,1,spotVizuParams.linkSize );
+			node.spatial().getScale().set( spotVizuParams.linkSize*100,1,spotVizuParams.linkSize*100 );
 			node.spatial().setRotation( new Quaternionf().rotateTo( new Vector3f(0,1,0), posT ).normalize() );
 			node.spatial().setPosition( new Vector3f(posF) );
 
@@ -502,9 +515,17 @@ public class DisplayMastodonData {
 			}
 
 			//setup the spot
-			spot.localize(pos);
+			lock = pluginAppModel.getAppModel().getModel().getGraph().getLock();
+			lock.readLock().lock();
+			try{
+				spot.localize(pos);
+			}
+			finally {
+				lock.readLock().unlock();
+			}
+
 			System.out.println(pos[0] + " " + pos[1] + " " + pos[2]);
-			sph.spatial().setPosition( toVolumeCoords(pos) ); //adjust coords to the current volume scale
+			sph.spatial().setPosition( pos ); //adjust coords to the current volume scale
 
 			System.out.println(sph.spatial().getPosition());
 			if (colorGenerator != null)
@@ -535,6 +556,24 @@ public class DisplayMastodonData {
 			}
 
 			sph.setName(spot.getLabel());
+			sph.getMetadata().put("Label",spot.getLabel());
+			sph.addAttribute(Selectable.class, 	new Selectable(() -> { selectionStorage = sph; return null;}));
+			sph.addAttribute(Touchable.class, new Touchable(
+				(TrackedDevice device)-> {
+				if (device.getRole() == TrackerRole.LeftHand) {
+					if (device.getVelocity() != null)
+					{
+						Vector3f position = new Vector3f((device.getVelocity()).mul(new Vector3f(5f))).add(sph.spatial().getPosition());
+						sph.spatial().setPosition(position);
+					}
+					events.publish(new NodeChangedEvent(sph));
+				}
+				return null;},
+			null,
+			null,
+			null
+			));
+
 			sph.linksNodesHub.setName("Track of " + spot.getLabel());
 			sph.linksNodesHub.setMaterial( sph.getMaterial() != sharedMaterialObj ? sph.getMaterial() : sharedLinksMatObj );
 			sph.linksNodesHub.setParent( linksHubNode ); //NB: required for sph.updateLinks() -> sph.addNode()
@@ -556,6 +595,7 @@ public class DisplayMastodonData {
 		events.publish(new NodeChangedEvent(spotsHubNode));
 	}
 
+
 	public
 	void updateSpotPosition(final RichNode spotsNode, final Spot updatedSpot)
 	{
@@ -566,7 +606,7 @@ public class DisplayMastodonData {
 		{
 			final Vector3f hubPos = spotsNode.spatial().getPosition();
 			updatedSpot.localize(pos);
-			spotNode.spatialOrNull().setPosition( toVolumeCoords(pos) ); //adjust coords to the current volume scale
+			spotNode.spatialOrNull().setPosition( pos); //adjust coords to the current volume scale
 			spotNode.spatialOrNull().setNeedsUpdate(true);
 		}
 	}
@@ -575,35 +615,6 @@ public class DisplayMastodonData {
 	final float[] pos = new float[3];
 
 	// ============================================================================================
-
-	public static
-	Vector3f toVolumeCoords(final Vector3f coord)
-	{
-		coord.y = volumeHeight - coord.y;
-		return coord;
-	}
-
-	public static
-	Vector3f toBDVCoords(final Vector3f coord)
-	{
-		coord.y = volumeHeight - coord.y;
-		return coord;
-	}
-
-	public static
-	float[] toBDVCoords(final float[] coord)
-	{
-		coord[1] = volumeHeight- coord[1];
-		return coord;
-	}
-
-	public static
-	float[] toVolumeCoords(final float[] coord)
-	{
-		coord[1] = volumeHeight -coord[1];
-		return coord;
-	}
-
 	// ============================================================================================
 
 	static

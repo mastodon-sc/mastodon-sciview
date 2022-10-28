@@ -46,8 +46,7 @@
 		<enforcer.skip>true</enforcer.skip>
 		<kotlin.version>1.7.10</kotlin.version>
 		<!--		<scenery.version>35ab1c9</scenery.version>-->
-		<!--		<scenery.version>5de0b1e</scenery.version>-->
-		<!--		<scenery.version>84dfb997fc</scenery.version>-->
+
 
 		<lwjgl.version>3.3.1</lwjgl.version>
 		<!-- the same as in Mastodon -->
@@ -56,25 +55,21 @@
 	</properties>
 
 	<dependencies>
-		<dependency>
-			<groupId>com.github.mastodon-sc</groupId>
-			<artifactId>mastodon</artifactId>
-<!--			<version>8adc3d4</version>-->
-			<version>2f1572c</version>
-		</dependency>
 <!--		<dependency>-->
-<!--			<groupId>com.github.elephant-track</groupId>-->
-<!--			<artifactId>elephant-client</artifactId>-->
-<!--			<version>v0.4.0</version>-->
+<!--			<groupId>com.github.mastodon-sc</groupId>-->
+<!--			<artifactId>mastodon</artifactId>-->
+<!--			<version>2f1572c</version>-->
 <!--		</dependency>-->
+		<dependency>
+			<groupId>com.github.elephant-track</groupId>
+			<artifactId>elephant-client</artifactId>
+			<version>v0.4.0</version>
+		</dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>imagej</artifactId>
 		</dependency>
 		<dependency>
-<!--			<groupId>graphics.scenery</groupId>-->
-<!--			<artifactId>sciview</artifactId>-->
-<!--			<version>7e4c12847f</version>-->
 			<groupId>sc.iview</groupId>
 			<artifactId>sciview</artifactId>
 			<version>0.2.0-beta-9-SNAPSHOT-test-6</version>

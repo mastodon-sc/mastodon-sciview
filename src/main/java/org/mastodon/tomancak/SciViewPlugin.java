@@ -3,14 +3,18 @@ package org.mastodon.tomancak;
 import bdv.viewer.ConverterSetups;
 import bdv.viewer.SourceAndConverter;
 import graphics.scenery.DefaultNode;
+import graphics.scenery.InstancedNode;
 import graphics.scenery.RichNode;
 import graphics.scenery.volumes.Colormap;
 import net.imagej.ImageJ;
 
 
 import net.imglib2.type.numeric.ARGBType;
+import org.elephant.Elephant;
 import org.mastodon.mamut.model.ModelGraph;
 import org.ojalgo.type.keyvalue.StringToInt;
+import org.scijava.log.LogService;
+import org.scijava.plugin.Parameter;
 import sc.iview.SciView;
 import graphics.scenery.Node;
 import graphics.scenery.volumes.Volume;
@@ -41,12 +45,14 @@ import sc.iview.event.NodeActivatedEvent;
 import org.joml.Vector3f;
 import sc.iview.event.NodeAddedEvent;
 import sc.iview.event.NodeChangedEvent;
+import sc.iview.event.NodeRemovedEvent;
 
 import javax.swing.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 import static org.mastodon.app.ui.ViewMenuBuilder.item;
@@ -57,12 +63,16 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 	private static final String SCIVIEW_CONNECTOR = "[tomancak] start sciview";
 	private static final String[] SCIVIEW_CONNECTOR_KEYS = { "not mapped" };
 
+
 	private static final Map< String, String > menuTexts = new HashMap<>();
 	static
 	{
 		menuTexts.put( SCIVIEW_CONNECTOR, "Start SciView" );
 	}
 
+	@Parameter
+	LogService log;
+	
 	@Override
 	public Map< String, String > getMenuTexts()
 	{
@@ -103,6 +113,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 	}
 
 	private MamutPluginAppModel pluginAppModel;
+	private ReentrantReadWriteLock lock;
 
 	@Override
 	public void setAppPluginModel( final MamutPluginAppModel model )
@@ -129,6 +140,8 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 		{
 			final DisplayMastodonData dmd = new DisplayMastodonData(pluginAppModel);
 			Spot previousSpot =null;
+//			List<String> tracks = new ArrayList<>();
+			final ModelGraph graph = pluginAppModel.getAppModel().getModel().getGraph();
 			@Override
 			public void run()
 			{
@@ -137,9 +150,9 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 					dmd.sv = SciView.create();
 					dmd.sv.setInterpreterWindowVisibility(false);
 					Thread.sleep(2000); //a bit of a grace time before we continue
-					System.out.println("SciView started...");
+					log.info("SciView started...");
 				} catch (Exception e) {
-					System.out.println("SciView has a problem:");
+					log.info("SciView has a problem:");
 					e.printStackTrace();
 					dmd.sv = null;
 				}
@@ -147,7 +160,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 
 				//find the event service to be able to notify the inspector
 				dmd.events = dmd.sv.getScijavaContext().getService(EventService.class);
-				System.out.println("Found an event service: " + dmd.events);
+				log.info("Found an event service: " + dmd.events);
 
 				//show full volume
 				Volume v = dmd.showTimeSeries();
@@ -176,7 +189,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 					//setup coloring
 					final MamutViewTrackScheme tsWin = pluginAppModel.getWindowManager().createTrackScheme();
 					tsWin.getColoringModel().listeners().add( () -> {
-						System.out.println("coloring changed");
+						log.info("coloring changed");
 						setColorGeneratorFrom(tsWin);
 					});
 
@@ -186,12 +199,12 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 					highlighter.listeners().add( () -> {
 						if (highlighter.getHighlightedVertex(sRef) != null)
 						{
-							//System.out.println("focused on "+sRef.getLabel());
+							//log.info("focused on "+sRef.getLabel());
 							updateFocus( dmd.sv.find(sRef.getLabel()) );
 						}
 						else
 						{
-							//System.out.println("defocused");
+							//log.info("defocused");
 							updateFocus( null );
 						}
 					});
@@ -201,14 +214,14 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 							.getViewerPanelMamut()
 							.addTimePointListener( tp -> {
 								updateFocus(null);
-								//System.out.println("detect to a new time point");
+								//log.info("detect to a new time point");
 								dmd.showSpots(tp,spotsNode,linksNode,colorGenerator);
 							} );
-
+					//setup updating of spots when they are created in the current view
 					pluginAppModel.getAppModel()
 							.getModel().getGraph()
 							.addGraphChangeListener(()-> {
-								System.out.println("some change");
+								log.info("some change");
 								updateFocus(null);
 								dmd.showSpots( v.getCurrentTimepoint(),spotsNode,linksNode,null);
 							} );
@@ -256,6 +269,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 			final EventListener notifierOfMastodonWhenSpotIsSelectedInSciView = new EventListener();
 			class EventListener extends AbstractContextual
 			{
+				//highlight the spot when sphere is selected in sciview
 				@EventHandler
 				public void onEvent(NodeActivatedEvent event) {
 					if (event.getNode() == null) return;
@@ -265,44 +279,79 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 							.filter(s -> (s.getLabel().equals(event.getNode().getName())))
 							.forEach(s ->
 							{
-								//System.out.println("sciview tells bdv highlight");
+								//log.info("sciview tells bdv highlight");
 								pluginAppModel.getAppModel().getSelectionModel().setSelected(s,true);
 								pluginAppModel.getAppModel().getHighlightModel().highlightVertex(s);
 							});
 				}
 
+				//delete spot from mastodon when sphere if deleted from sciview
+				@EventHandler
+				public void onEvent(NodeRemovedEvent event) {
+					if(event.getNode() == null) return;
+					pluginAppModel.getAppModel().getModel().getGraph().vertices()
+							.stream()
+							.filter(s -> (s.getLabel().equals(event.getNode().getMetadata().get("Label"))))
+							.forEach(s ->
+							{
+								lock = pluginAppModel.getAppModel().getModel().getGraph().getLock();
+								lock.writeLock().lock();
+								try{
+									pluginAppModel.getAppModel().getModel().getGraph().remove(s);
+								}
+								finally {
+									lock.writeLock().unlock();
+								}
+								graph.notifyGraphChanged();
+							});
+				}
+
+
+				//add spots when there are tracks generated in sciview
 				@EventHandler
 				public void onEvent(NodeAddedEvent event) {
-					if (event.getNode() == null) return;
-					if (event.getNode().getName().contains("trackpoint_"))
+					final Node n = event.getNode();
+
+					if (n == null) return;
+					if (n.getName().startsWith("Track-") )
 					{
-						String name = event.getNode().getName();
-//						System.out.println(name+ " is detected");
-						String[] tp = name.split("_");
-						Vector3f pos = dmd.toBDVCoords(new Vector3f(Float.parseFloat(tp[2]),Float.parseFloat(tp[3]),Float.parseFloat(tp[4])));
-//						System.out.println("detected location: " + pos );
-						final ModelGraph graph = pluginAppModel.getAppModel().getModel().getGraph();
+							log.info("add track" + n.getName());
+							previousSpot = null;
+							n.getChildren().stream().filter(t -> (t.getMetadata().get("Type") == "node")).forEach( node -> {
+								final Vector3f pos = (Vector3f) node.getMetadata().get("NodePosition");
+								final int tp = (int) node.getMetadata().get("NodeTimepoint");
 
-						final Spot spot = graph.addVertex().init( Integer.parseInt(tp[1]),
-								new double[] { pos.x, pos.y, pos.z},
-								new double[][] {
-										{ 210, 100, 0 },
-										{ 100, 110, 10 },
-										{ 0, 10, 100 }
-								} );
-						System.out.println("create spot with label " + spot.getLabel());
-						final Link link = graph.edgeRef();
+								lock = pluginAppModel.getAppModel().getModel().getGraph().getLock();
+								lock.writeLock().lock();
+								try {
+									final Spot spot = graph.addVertex().init(tp,
+											new double[]{pos.x, pos.y, pos.z},
+											new double[][]{
+													{210, 100, 0},
+													{100, 110, 10},
+													{0, 10, 100}
+											});
+									log.info("create spot with label " + spot.getLabel());
 
-						if(previousSpot != null)
-						{
-							System.out.println("add edge from " +previousSpot.getLabel() + "to " + spot.getLabel());
-							graph.addEdge(previousSpot,spot,link);
-						}
-						previousSpot = spot;
-						graph.notifyGraphChanged();
+									node.getMetadata().put("Label", spot.getLabel());
+									final Link link = graph.edgeRef();
+
+									if (previousSpot != null) {
+										log.info("add edge from " + previousSpot.getLabel() + "to " + spot.getLabel());
+										graph.addEdge(previousSpot, spot, link);
+									}
+									previousSpot = spot;
+								} finally {
+									lock.writeLock().unlock();
+								}
+							});
+
+							graph.notifyGraphChanged();
+
 					}
 				}
 
+				//change location of spots and color of volume in Mastodon when spheres and volume is changed in sciview
 				@EventHandler
 				public void onEvent(NodeChangedEvent event) {
 					if (event.getNode() == null) return;
@@ -311,22 +360,22 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 						if(!dmd.synChoiceParams.synColor||!dmd.synChoiceParams.synDisRange)
 							return;
 
-						System.out.println("mastodon raw data 's change");
+						log.info("mastodon raw data 's change");
 
 						Volume volume = (Volume) event.getNode();
 
-						System.out.println(volume.getColormap());
+						log.info(volume.getColormap());
 						Colormap cp = volume.getColormap();
 
 						final ConverterSetups setups = pluginAppModel.getAppModel().getSharedBdvData().getConverterSetups();
 						final ArrayList<SourceAndConverter<?>> sacs = pluginAppModel.getAppModel().getSharedBdvData().getSources();
 						for(SourceAndConverter sac:sacs){
 							Vector4f col = cp.sample(0.9f);
-//							System.out.println(col);
+//							log.info(col);
 							col = col.mul(256f,256f,256f,256f);
-							System.out.println("before"+setups.getConverterSetup(sac).getColor());
+							log.info("before"+setups.getConverterSetup(sac).getColor());
 							setups.getConverterSetup(sac).setColor(new ARGBType(ARGBType.rgba((float)col.x,(float)col.y,(float)col.z,(float)col.w)));
-							System.out.println("after"+setups.getConverterSetup(sac).getColor());
+							log.info("after"+setups.getConverterSetup(sac).getColor());
 						}
 						pluginAppModel.getWindowManager().forEachBdvView(
 								view -> {
@@ -336,19 +385,19 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 					}
 					pluginAppModel.getAppModel().getModel().getGraph().vertices()
 							.stream()
-							.filter(s -> (s.getLabel().equals(event.getNode().getName())))
+							.filter(s -> (s.getLabel().equals(event.getNode().getMetadata().get("Label"))))
 							.forEach(s ->
 							{
 								if(!dmd.synChoiceParams.synSpotLoc)
 									return;
-//								System.out.println("move");
-//								System.out.println(event.getNode().getPosition());
-								Vector3f parentPosition = event.getNode().getParent().getPosition();
-								Vector3f realPosition = event.getNode().getPosition();
+
+								log.info(event.getNode().spatialOrNull().getPosition());
+								Vector3f realPosition = event.getNode().spatialOrNull().getPosition();
 								float[] pos = new float[3];
-								pos[0] = (parentPosition.x+realPosition.x)/0.01f;
-								pos[1] = -(parentPosition.y+realPosition.y)/0.01f;
-								pos[2] = -(parentPosition.z+realPosition.z)/0.01f;
+								pos[0] = realPosition.x;
+								pos[1] = realPosition.y;
+								pos[2] = realPosition.z;
+
 								s.setPosition(pos);
 
 							});
@@ -371,7 +420,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 	private void updateFocus(final Node newFocusNode)
 	{
 		/* DEBUG
-		System.out.println("defocus: "+(stillFocusedNode != null ? stillFocusedNode.getName() : "NONE")
+		log.info("defocus: "+(stillFocusedNode != null ? stillFocusedNode.getName() : "NONE")
 			+", focus newly: "+(newFocusNode != null ? newFocusNode.getName() : "NONE"));
 		*/
 
@@ -400,9 +449,9 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 			//start up our own Fiji/Imagej2
 			final ImageJ ij = new ImageJ();
 			ij.ui().showUI();
-			//final Elephant elephant = (Elephant)ij.command().run(Elephant.class, true).get().getCommand();
 
 			final Mastodon mastodon = (Mastodon)ij.command().run(Mastodon.class, true).get().getCommand();
+
 			mastodon.setExitOnClose();
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
