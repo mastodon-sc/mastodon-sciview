@@ -168,12 +168,15 @@ public class DisplayMastodonData {
 		return showTimeSeries(pluginAppModel,sv);
 	}
 
+	/**
+	 *  Most of settings to volume are set here.
+	 */
 	public
 	Volume showTimeSeries(final MamutPluginAppModel mastodonPlugin, final SciView sv)
 	{
 		final SourceAndConverter<?> sac = mastodonPlugin.getAppModel().getSharedBdvData().getSources().get(0);
 		int np =mastodonPlugin.getAppModel().getSharedBdvData().getNumTimepoints();
-		final Volume v = (Volume)sv.addVolume((SourceAndConverter)sac,np,volumeName,1.0f, 1.0f, 1.0f);
+		final Volume v = (Volume)sv.addVolume((SourceAndConverter)sac,np,volumeName, new float[]{1.0f, 1.0f, 1.0f});
 
 		//adjust the transfer function to a "diagonal"
 		setTransferFunction(v);
@@ -209,7 +212,6 @@ public class DisplayMastodonData {
 
 		System.out.println("volumes.getDimension: " + v.getDimensions());
 		System.out.println("volumes.model: " + v.getModel());
-//		System.out.println("volumes.world.matrix: " + v.spatial().getWorld());
 		volumeHeight = v.getDimensions().y;
 
 		return v;
@@ -226,9 +228,7 @@ public class DisplayMastodonData {
 			{
 				System.out.println("BDV says new color    : " + t.getColor());
 				restoreVolumeColor(v,volumeColormaps);
-				v.getVolumeManager().requestRepaint();
 			}
-			//request that the volume be repainted in SciView
 		});
 
 		//this block may set up a listener for TP change in a BDV from which SciView was started, if any...
@@ -239,8 +239,9 @@ public class DisplayMastodonData {
 						if(synChoiceParams.synTimestamp)
 						{
 							System.out.println("BDV says new timepoint "+tp);
-							v.getViewerState().setCurrentTimepoint(tp);
-							v.getVolumeManager().requestRepaint();
+							//v.getViewerState().setCurrentTimepoint(tp);
+							//v.getVolumeManager().requestRepaint();
+							//v.goToTimepoint(tp);
 
 							//also notify the inspector panel
 //							events.publish(new NodeChangedEvent(v));
@@ -288,6 +289,7 @@ public class DisplayMastodonData {
 	public
 	float linkRadius = 0.01f;
 
+	//define a customed classs with some functions called SphereWithLinks
 	public
 	class SphereWithLinks extends Icosphere
 	{
@@ -306,8 +308,6 @@ public class DisplayMastodonData {
 		void addLink(final Spot from, final Spot to)
 		{
 			from.localize(pos);
-
-
 			to.localize(pos);
 
 			posT.sub( posF );
@@ -419,10 +419,7 @@ public class DisplayMastodonData {
 		private
 		void backwardSearch(final Spot spot, final int TPfrom)
 		{
-			System.out.println("spot.getTimepoint():"+spot.getTimepoint());
-			System.out.println("TPfrom:"+TPfrom);
 			if (spot.getTimepoint() <= TPfrom) return;
-			System.out.println("backward search!");
 			//enumerate all backward links
 			final Spot s = spot.getModelGraph().vertexRef();
 			for (Link l : spot.incomingEdges())
@@ -524,10 +521,10 @@ public class DisplayMastodonData {
 				lock.readLock().unlock();
 			}
 
-			System.out.println(pos[0] + " " + pos[1] + " " + pos[2]);
+			//System.out.println(pos[0] + " " + pos[1] + " " + pos[2]);
 			sph.spatial().setPosition( pos ); //adjust coords to the current volume scale
 
-			System.out.println(sph.spatial().getPosition());
+			//System.out.println(sph.spatial().getPosition());
 			if (colorGenerator != null)
 			{
 				int rgbInt = colorGenerator.color(spot);
@@ -574,6 +571,7 @@ public class DisplayMastodonData {
 			null
 			));
 
+			System.out.println("add nodes to sciview");
 			sph.linksNodesHub.setName("Track of " + spot.getLabel());
 			sph.linksNodesHub.setMaterial( sph.getMaterial() != sharedMaterialObj ? sph.getMaterial() : sharedLinksMatObj );
 			sph.linksNodesHub.setParent( linksHubNode ); //NB: required for sph.updateLinks() -> sph.addNode()
@@ -635,7 +633,7 @@ public class DisplayMastodonData {
 		v.setColormap( colormapsCache.getColormap(rgba) );
 	}
 
-
+	//call Dialog "synchronizeChoice"
 	public static
 	void showSynchronizeChoiceDialog(final Context ctx,final SynchronizeChoiceDialog.ParamsWrapper synChoiceParams,final MamutPluginAppModel mamutPluginAppModel
 	, final Volume volume)
@@ -646,6 +644,7 @@ public class DisplayMastodonData {
 		);
 	}
 
+	//call Dialog "synchronizeChoice"
 	public static
 	void showSpotsDisplayParamsDialog(final Context ctx, final Node spots, final Node links,
 	                                  final SpotsDisplayParamsDialog.ParamsWrapper vizuParams

@@ -163,6 +163,7 @@ public class SpotsDisplayParamsDialog extends InteractiveCommand {
 		list.add("linkAlpha");
 		list.add("link_TPsInPast");
 		list.add("link_TPsAhead");
+		//although this function integrates this window to sciview, it actually should not appear as an independent window at beginning at all.
 		sciView.attachCustomPropertyUIToNode(volume,new CustomPropertyUI(this,list));
 	}
 }

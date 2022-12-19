@@ -12,6 +12,9 @@ import net.imagej.ImageJ;
 import net.imglib2.type.numeric.ARGBType;
 import org.elephant.Elephant;
 import org.mastodon.mamut.model.ModelGraph;
+import org.mastodon.model.tag.ObjTagMap;
+import org.mastodon.model.tag.TagSetModel;
+import org.mastodon.model.tag.TagSetStructure;
 import org.ojalgo.type.keyvalue.StringToInt;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
@@ -41,13 +44,11 @@ import org.scijava.ui.behaviour.util.RunnableAction;
 import org.scijava.event.EventService;
 
 import org.scijava.event.EventHandler;
-import sc.iview.event.NodeActivatedEvent;
+import sc.iview.event.*;
 import org.joml.Vector3f;
-import sc.iview.event.NodeAddedEvent;
-import sc.iview.event.NodeChangedEvent;
-import sc.iview.event.NodeRemovedEvent;
 
 import javax.swing.*;
+import java.awt.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -139,8 +140,6 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 		new Thread("Mastodon's SciView")
 		{
 			final DisplayMastodonData dmd = new DisplayMastodonData(pluginAppModel);
-			Spot previousSpot =null;
-//			List<String> tracks = new ArrayList<>();
 			final ModelGraph graph = pluginAppModel.getAppModel().getModel().getGraph();
 			@Override
 			public void run()
@@ -199,12 +198,12 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 					highlighter.listeners().add( () -> {
 						if (highlighter.getHighlightedVertex(sRef) != null)
 						{
-							//log.info("focused on "+sRef.getLabel());
+							log.info("focused on "+sRef.getLabel());
 							updateFocus( dmd.sv.find(sRef.getLabel()) );
 						}
 						else
 						{
-							//log.info("defocused");
+							log.info("defocused");
 							updateFocus( null );
 						}
 					});
@@ -214,14 +213,14 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 							.getViewerPanelMamut()
 							.addTimePointListener( tp -> {
 								updateFocus(null);
-								//log.info("detect to a new time point");
+								log.info("detect to a new time point");
 								dmd.showSpots(tp,spotsNode,linksNode,colorGenerator);
 							} );
 					//setup updating of spots when they are created in the current view
 					pluginAppModel.getAppModel()
 							.getModel().getGraph()
 							.addGraphChangeListener(()-> {
-								log.info("some change");
+								log.info("some nodes are added");
 								updateFocus(null);
 								dmd.showSpots( v.getCurrentTimepoint(),spotsNode,linksNode,null);
 							} );
@@ -267,8 +266,88 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 			//this object cannot be created within the scope of the run() method, otherwise
 			//it will be GC'ed after run() is over.. and the listener will never get activated...
 			final EventListener notifierOfMastodonWhenSpotIsSelectedInSciView = new EventListener();
+
+			public static final String TRACKING_TAGSET_NAME = "Tracking";
+			public static final String TRACKING_APPROVED_TAG_NAME = "Approved";
+			public static final String TRACKING_UNLABELED_TAG_NAME = "unlabeled";
 			class EventListener extends AbstractContextual
 			{
+				private TagSetModel< Spot, Link > getTagSetModel()
+				{
+					return pluginAppModel.getAppModel().getModel().getTagSetModel();
+				}
+
+				private TagSetStructure.TagSet getTrackingTagSet()
+				{
+					/**
+					 * The following functions used for srtting up Elephant color system.
+					 */
+					final TagSetStructure tss = getTagSetModel().getTagSetStructure();
+					final TagSetStructure.TagSet tagSet = tss.getTagSets().stream().filter(ts -> ts.getName().equals( TRACKING_TAGSET_NAME ) ).findFirst().orElseGet( () -> {
+						final TagSetStructure tssCopy = new TagSetStructure();
+						tssCopy.set( tss );
+						final TagSetStructure.TagSet tagSetCopy = tssCopy.createTagSet( TRACKING_TAGSET_NAME );
+						tagSetCopy.createTag( TRACKING_APPROVED_TAG_NAME, Color.CYAN.getRGB() );
+						tagSetCopy.createTag( TRACKING_UNLABELED_TAG_NAME, Color.GREEN.getRGB() );
+						getTagSetModel().pauseListeners();
+						try
+						{
+							getTagSetModel().setTagSetStructure( tssCopy );
+						}
+						finally
+						{
+							getTagSetModel().resumeListeners();
+						}
+						return tagSetCopy;
+					} );
+					return tagSet;
+				}
+				private TagSetStructure.Tag getTag(final TagSetStructure.TagSet tagSet, final String name )
+				{
+					return tagSet.getTags().stream().filter( t -> t.label().equals( name ) ).findFirst().orElse( null );
+				}
+				private ObjTagMap< Spot, TagSetStructure.Tag> getVertexTagMap(final TagSetStructure.TagSet tagSet )
+				{
+					return getTagSetModel().getVertexTags().tags( tagSet );
+				}
+
+				/**
+				 * when tag event is triggered in sciview (See VRHeadTrackingExample in sciview), notify the mastondon to change the color and Elephant tag the spots
+				 */
+				@EventHandler
+				public void onEvent(NodeTaggedEvent event) {
+					if(event.getNode() == null) return;
+					pluginAppModel.getAppModel().getModel().getGraph().vertices()
+							.stream()
+							.filter(s -> (s.getLabel().equals(event.getNode().getMetadata().get("Label"))))
+							.forEach(s ->
+							{
+								pluginAppModel.getAppModel().getModel().getGraph().getLock().writeLock().lock();
+								try
+								{
+									final ObjTagMap< Spot, TagSetStructure.Tag> spotTagMap = getVertexTagMap( getTrackingTagSet() );
+									final TagSetStructure.Tag approvedTag = getTag( getTrackingTagSet(), TRACKING_APPROVED_TAG_NAME );
+									spotTagMap.set(s, approvedTag);
+
+									log.info("tag spot: " + s.getInternalPoolIndex());
+								}
+								finally
+								{
+									pluginAppModel.getAppModel().getModel().setUndoPoint();
+									pluginAppModel.getAppModel().getModel().getGraph().getLock().writeLock().unlock();
+									if ( EventQueue.isDispatchThread() )
+									{
+										pluginAppModel.getAppModel().getModel().getGraph().notifyGraphChanged();
+									}
+									else
+									{
+										SwingUtilities.invokeLater( () -> pluginAppModel.getAppModel().getModel().getGraph().notifyGraphChanged() );
+									}
+								}
+							});
+				}
+
+
 				//highlight the spot when sphere is selected in sciview
 				@EventHandler
 				public void onEvent(NodeActivatedEvent event) {
@@ -276,12 +355,14 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 					pluginAppModel.getAppModel().getSelectionModel().clearSelection();
 					pluginAppModel.getAppModel().getModel().getGraph().vertices()
 							.stream()
-							.filter(s -> (s.getLabel().equals(event.getNode().getName())))
+							.filter(s -> (s.getLabel().equals(event.getNode().getMetadata().get("Label"))))
 							.forEach(s ->
 							{
+
 								//log.info("sciview tells bdv highlight");
 								pluginAppModel.getAppModel().getSelectionModel().setSelected(s,true);
 								pluginAppModel.getAppModel().getHighlightModel().highlightVertex(s);
+
 							});
 				}
 
@@ -313,18 +394,24 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 					final Node n = event.getNode();
 
 					if (n == null) return;
+
 					if (n.getName().startsWith("Track-") )
 					{
 							log.info("add track" + n.getName());
-							previousSpot = null;
+							final Spot previousSpot = graph.vertexRef();
+							final Spot spot = graph.vertexRef();
+							final Link link = graph.edgeRef();
+						    final int[] flag = {0};
+
 							n.getChildren().stream().filter(t -> (t.getMetadata().get("Type") == "node")).forEach( node -> {
 								final Vector3f pos = (Vector3f) node.getMetadata().get("NodePosition");
 								final int tp = (int) node.getMetadata().get("NodeTimepoint");
 
 								lock = pluginAppModel.getAppModel().getModel().getGraph().getLock();
 								lock.writeLock().lock();
+
 								try {
-									final Spot spot = graph.addVertex().init(tp,
+									graph.addVertex(spot).init(tp,
 											new double[]{pos.x, pos.y, pos.z},
 											new double[][]{
 													{210, 100, 0},
@@ -332,22 +419,27 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 													{0, 10, 100}
 											});
 									log.info("create spot with label " + spot.getLabel());
-
 									node.getMetadata().put("Label", spot.getLabel());
-									final Link link = graph.edgeRef();
-
-									if (previousSpot != null) {
-										log.info("add edge from " + previousSpot.getLabel() + "to " + spot.getLabel());
-										graph.addEdge(previousSpot, spot, link);
+									if (flag[0] != 0) {
+										log.info("add edge from " + previousSpot.getLabel() + " to " + spot.getLabel());
+										graph.addEdge(previousSpot, spot, link).init();
 									}
-									previousSpot = spot;
+									else
+									{
+										flag[0] = 1;
+										log.info("previousSpot is still null");
+									}
+									previousSpot.refTo(spot);
 								} finally {
 									lock.writeLock().unlock();
+
 								}
 							});
 
-							graph.notifyGraphChanged();
-
+						graph.notifyGraphChanged();
+						graph.releaseRef( previousSpot );
+						graph.releaseRef( spot );
+						graph.releaseRef( link );
 					}
 				}
 
@@ -417,6 +509,7 @@ public class SciViewPlugin extends AbstractContextual implements MamutPlugin
 	//focus attributes
 	private Node stillFocusedNode = null;
 	private Spot sRef,fRef;
+
 	private void updateFocus(final Node newFocusNode)
 	{
 		/* DEBUG

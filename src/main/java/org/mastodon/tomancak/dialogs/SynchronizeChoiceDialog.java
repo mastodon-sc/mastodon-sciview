@@ -81,7 +81,7 @@ public class SynchronizeChoiceDialog extends InteractiveCommand{
         list.add("synDisRange");
         list.add("synTimestamp");
         list.add("synSpotLoc");
-
+        //although this function integrates this window to sciview, it actually should not appear as an independent window at beginning at all.
         sciView.attachCustomPropertyUIToNode(volume,new CustomPropertyUI(this,list));
     }
 
@@ -89,7 +89,7 @@ public class SynchronizeChoiceDialog extends InteractiveCommand{
     public
     void run()
     {
-//        System.out.println("Run is called");
+//      Create a JFrame to put buttons for mastodon group handle. this should be improved by integrating it into sciview main window
         final JFrame pbframe = new JFrame("locate the selected points(sciview) in Mastodon");
         pbframe.setLayout(new BoxLayout(pbframe.getContentPane(), BoxLayout.Y_AXIS));
         myGroupHandle = mamutPluginAppModel.getAppModel().getGroupManager().createGroupHandle();
