@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>31.1.0</version>
+		<version>37.0.0</version>
 	</parent>
 
 	<groupId>org.mastodon</groupId>
@@ -44,13 +44,13 @@
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
 
 		<enforcer.skip>true</enforcer.skip>
-		<kotlin.version>1.7.10</kotlin.version>
+		<kotlin.version>1.9.21</kotlin.version>
 		<!--		<scenery.version>35ab1c9</scenery.version>-->
 
 
-		<lwjgl.version>3.3.1</lwjgl.version>
+		<lwjgl.version>3.3.3</lwjgl.version>
 		<!-- the same as in Mastodon -->
-		<bigdataviewer-core.version>10.2.0</bigdataviewer-core.version>
+		<bigdataviewer-core.version>10.4.13</bigdataviewer-core.version>
 
 	</properties>
 
@@ -97,12 +97,12 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
-			<version>1.7.30</version>
+			<version>1.7.36</version>
 		</dependency>
 		<dependency>
 			<groupId>graphics.scenery</groupId>
 			<artifactId>scenery</artifactId>
-			<version>0.8.2-SNAPSHOT</version>
+			<version>0.10.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.logging.log4j</groupId>
@@ -118,19 +118,19 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
-			<version>2.13.0</version>
+			<version>2.16.1</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
-			<version>2.13.0</version>
+			<version>2.16.1</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.13.0</version>
+			<version>2.16.1</version>
 		</dependency>
 	</dependencies>
 

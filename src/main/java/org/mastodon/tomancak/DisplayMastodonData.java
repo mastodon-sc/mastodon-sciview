@@ -43,7 +43,7 @@ import sc.iview.SciView;
 import sc.iview.event.NodeChangedEvent;
 import sc.iview.event.NodeAddedEvent;
 import sc.iview.event.NodeRemovedEvent;
-import sc.iview.commands.edit.add.AddOrientationCompass;
+//import sc.iview.commands.edit.add.AddOrientationCompass;
 import sc.iview.commands.view.SetTransferFunction;
 import graphics.scenery.controls.TrackerRole;
 import graphics.scenery.controls.TrackedDevice;
