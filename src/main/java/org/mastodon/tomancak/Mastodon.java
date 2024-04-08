@@ -8,8 +8,8 @@ import javax.swing.WindowConstants;
 
 import org.mastodon.mamut.MainWindow;
 import org.mastodon.mamut.WindowManager;
-import org.mastodon.mamut.project.MamutProject;
-import org.mastodon.mamut.project.MamutProjectIO;
+import org.mastodon.mamut.io.project.MamutProject;
+import org.mastodon.mamut.io.project.MamutProjectIO;
 import org.scijava.Context;
 import org.scijava.command.Command;
 import org.scijava.command.ContextCommand;

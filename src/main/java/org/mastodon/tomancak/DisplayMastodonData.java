@@ -1,6 +1,7 @@
 package org.mastodon.tomancak;
 
 import bdv.tools.brightness.ConverterSetup;
+import bdv.util.Bdv;
 import bdv.viewer.*;
 
 
@@ -12,58 +13,36 @@ import graphics.scenery.controls.TrackerRole;
 import graphics.scenery.controls.behaviours.Selectable;
 import graphics.scenery.controls.behaviours.Touchable;
 import graphics.scenery.primitives.Cylinder;
-import graphics.scenery.volumes.BufferedVolume;
-import graphics.scenery.volumes.Colormap;
 import graphics.scenery.volumes.TransferFunction;
 import graphics.scenery.volumes.Volume;
-import kotlin.Unit;
-import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 
-import org.mastodon.mamut.MamutViewBdv;
+import org.mastodon.mamut.ProjectModel;
 import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.model.Spot;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
+import org.mastodon.mamut.views.bdv.MamutViewBdv;
 import org.mastodon.spatial.SpatialIndex;
 import org.mastodon.tomancak.dialogs.SpotsDisplayParamsDialog;
 import org.mastodon.tomancak.dialogs.SynchronizeChoiceDialog;
 import org.mastodon.ui.coloring.GraphColorGenerator;
 
-import net.imglib2.RandomAccessibleInterval;
 import org.scijava.Context;
 import org.scijava.command.CommandService;
 import org.scijava.event.EventService;
-import org.scijava.log.LogService;
-import org.scijava.plugin.Parameter;
-import org.scijava.plugin.Plugin;
-import org.scijava.widget.NumberWidget;
 import sc.iview.SciView;
 import sc.iview.event.NodeChangedEvent;
-import sc.iview.event.NodeAddedEvent;
-import sc.iview.event.NodeRemovedEvent;
 //import sc.iview.commands.edit.add.AddOrientationCompass;
-import sc.iview.commands.view.SetTransferFunction;
-import graphics.scenery.controls.TrackerRole;
 import graphics.scenery.controls.TrackedDevice;
 
 
-import javax.swing.*;
-import javax.vecmath.GVector;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.scijava.command.Command;
-import org.scijava.command.CommandInfo;
-
-import bdv.util.Bounds;
-
 public class DisplayMastodonData {
 	//Mastodon connection
-	final MamutPluginAppModel pluginAppModel;
+	final ProjectModel projectModel;
 	final FocusedBdvWindow controllingBdvWindow = new FocusedBdvWindow();
 	private ReentrantReadWriteLock lock;
 	private Node selectionStorage = null;
@@ -85,15 +64,15 @@ public class DisplayMastodonData {
 
 
 	public
-	DisplayMastodonData(final MamutPluginAppModel pluginAppModel)
+	DisplayMastodonData(final ProjectModel projectModel)
 	{
-		this(pluginAppModel,false);
+		this(projectModel,false);
 	}
 
 	public
-	DisplayMastodonData(final MamutPluginAppModel pluginAppModel,  final boolean startSciView)
+	DisplayMastodonData(final ProjectModel projectModel, final boolean startSciView)
 	{
-		this.pluginAppModel = pluginAppModel;
+		this.projectModel = projectModel;
 		if (startSciView) startSciView();
 	}
 
@@ -108,10 +87,10 @@ public class DisplayMastodonData {
 		void setPossiblyTo(MamutViewBdv adept)
 		{ if (adept.getFrame().isFocused()) focusedBdvWindow = adept; }
 
-		void setupFrom(final MamutPluginAppModel mastodon)
+		void setupFrom(final ProjectModel mastodon)
 		{
 			focusedBdvWindow = null;
-			mastodon.getWindowManager().forEachBdvView( bdvView -> setPossiblyTo(bdvView) );
+			mastodon.getWindowManager().forEachView(MamutViewBdv.class, bdvView -> setPossiblyTo(bdvView) );
 
 			if (focusedBdvWindow != null)
 				System.out.println("Controlling window found: "+focusedBdvWindow.getFrame().getTitle());
@@ -129,7 +108,7 @@ public class DisplayMastodonData {
 			@Override
 			public void run()
 			{
-				controllingBdvWindow.setupFrom(pluginAppModel);
+				controllingBdvWindow.setupFrom(projectModel);
 				try {
 					sv = SciView.create();
 					sv.setInterpreterWindowVisibility(false);
@@ -165,17 +144,17 @@ public class DisplayMastodonData {
 
 	public Volume showTimeSeries()
 	{
-		return showTimeSeries(pluginAppModel,sv);
+		return showTimeSeries(projectModel,sv);
 	}
 
 	/**
 	 *  Most of settings to volume are set here.
 	 */
 	public
-	Volume showTimeSeries(final MamutPluginAppModel mastodonPlugin, final SciView sv)
+	Volume showTimeSeries(final ProjectModel mastodonPlugin, final SciView sv)
 	{
-		final SourceAndConverter<?> sac = mastodonPlugin.getAppModel().getSharedBdvData().getSources().get(0);
-		int np =mastodonPlugin.getAppModel().getSharedBdvData().getNumTimepoints();
+		final SourceAndConverter<?> sac = mastodonPlugin.getSharedBdvData().getSources().get(0);
+		int np =mastodonPlugin.getSharedBdvData().getNumTimepoints();
 		final Volume v = (Volume)sv.addVolume((SourceAndConverter)sac,np,volumeName, new float[]{1.0f, 1.0f, 1.0f});
 
 		//adjust the transfer function to a "diagonal"
@@ -187,7 +166,7 @@ public class DisplayMastodonData {
 
 		//initial min-max display range comes from BDV
 		//... comes from BDV transiently since we're using its data directly ...
-		final ConverterSetup cs = mastodonPlugin.getAppModel().getSharedBdvData().getConverterSetups().getConverterSetup(sac);
+		final ConverterSetup cs = mastodonPlugin.getSharedBdvData().getConverterSetups().getConverterSetup(sac);
 		v.getConverterSetups().get(0).setDisplayRange(cs.getDisplayRangeMin(), cs.getDisplayRangeMax());
 
 		//prepare per axis scaling factors to maintain the data voxel ratio
@@ -222,7 +201,7 @@ public class DisplayMastodonData {
 	{
 
 		//watch when BDV (through its color&brightness dialog) changes display range or volume's color
-		pluginAppModel.getAppModel().getSharedBdvData().getConverterSetups().listeners().add( t -> {
+		projectModel.getSharedBdvData().getConverterSetups().listeners().add(t -> {
 			System.out.println("BDV says display range: " + t.getDisplayRangeMin() + " -> " + t.getDisplayRangeMax());
 			if(synChoiceParams.synColor)
 			{
@@ -268,10 +247,10 @@ public class DisplayMastodonData {
 					//also keep ignoring the SciView's color/LUT and enforce color from BDV
 					restoreVolumeColor(v, volumeColormaps);
 					System.out.println("effect is removed ");
-					pluginAppModel.getWindowManager().forEachBdvView(
+					projectModel.getWindowManager().forEachView(MamutViewBdv.class,
 							view -> {
 								view.getViewerPanelMamut().setTimepoint(TP);
-								view.requestRepaint();
+								view.getViewerPanelMamut().requestRepaint();
 							});
 				}
 			}
@@ -467,7 +446,7 @@ public class DisplayMastodonData {
 	public
 	void showSpots(final int timepoint, final RichNode spotsHubNode, final RichNode linksHubNode, final GraphColorGenerator<Spot, Link> colorGenerator)
 	{
-		SpatialIndex<Spot> spots = pluginAppModel.getAppModel().getModel().getSpatioTemporalIndex().getSpatialIndex(timepoint);
+		SpatialIndex<Spot> spots = projectModel.getModel().getSpatioTemporalIndex().getSpatialIndex(timepoint);
 		final Vector3f hubPos = spotsHubNode.getPosition();
 
 		//list of existing nodes that shall be updated
@@ -512,7 +491,7 @@ public class DisplayMastodonData {
 			}
 
 			//setup the spot
-			lock = pluginAppModel.getAppModel().getModel().getGraph().getLock();
+			lock = projectModel.getModel().getGraph().getLock();
 			lock.readLock().lock();
 			try{
 				spot.localize(pos);
@@ -635,12 +614,12 @@ public class DisplayMastodonData {
 
 	//call Dialog "synchronizeChoice"
 	public static
-	void showSynchronizeChoiceDialog(final Context ctx,final SynchronizeChoiceDialog.ParamsWrapper synChoiceParams,final MamutPluginAppModel mamutPluginAppModel
+	void showSynchronizeChoiceDialog(final Context ctx,final SynchronizeChoiceDialog.ParamsWrapper synChoiceParams,final ProjectModel ProjectModel
 	, final Volume volume)
 	{
 		//start the TransferFunction modifying dialog
 		ctx.getService(CommandService.class).run(SynchronizeChoiceDialog.class,true,
-				"params",synChoiceParams,"mamutPluginAppModel",mamutPluginAppModel, "volume",volume,"sciView",volume.getVolumeManager().getHub().getApplication()
+				"params",synChoiceParams,"ProjectModel",ProjectModel, "volume",volume,"sciView",volume.getVolumeManager().getHub().getApplication()
 		);
 	}
 

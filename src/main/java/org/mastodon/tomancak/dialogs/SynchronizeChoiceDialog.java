@@ -1,26 +1,22 @@
 package org.mastodon.tomancak.dialogs;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import javax.swing.*;
 
 import graphics.scenery.volumes.Volume;
 import kotlin.jvm.Volatile;
+import org.mastodon.mamut.ProjectModel;
 import org.mastodon.model.HighlightModel;
 import org.scijava.command.*;
 import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
-import org.scijava.module.Module;
 import org.mastodon.grouping.GroupHandle;
 import org.mastodon.app.ui.GroupLocksPanel;
 import org.mastodon.mamut.model.Link;
 import org.mastodon.mamut.model.Spot;
-import org.mastodon.mamut.plugin.MamutPluginAppModel;
-import org.scijava.widget.NumberWidget;
 import sc.iview.SciView;
 import sc.iview.ui.CustomPropertyUI;
 
@@ -37,7 +33,7 @@ public class SynchronizeChoiceDialog extends InteractiveCommand{
     }
 
     @Parameter(persist = false)
-    private MamutPluginAppModel mamutPluginAppModel;
+    private ProjectModel projectModel;
 
     @Parameter(persist = false)
     private Volume volume;
@@ -92,19 +88,19 @@ public class SynchronizeChoiceDialog extends InteractiveCommand{
 //      Create a JFrame to put buttons for mastodon group handle. this should be improved by integrating it into sciview main window
         final JFrame pbframe = new JFrame("locate the selected points(sciview) in Mastodon");
         pbframe.setLayout(new BoxLayout(pbframe.getContentPane(), BoxLayout.Y_AXIS));
-        myGroupHandle = mamutPluginAppModel.getAppModel().getGroupManager().createGroupHandle();
+        myGroupHandle = projectModel.getGroupManager().createGroupHandle();
         pbframe.add( new GroupLocksPanel( myGroupHandle ) );
         pbframe.setMinimumSize(new Dimension(300, 180));
         pbframe.pack();
         pbframe.setLocationByPlatform(true);
         pbframe.setVisible(true);
 
-        Spot sRef = mamutPluginAppModel.getAppModel().getModel().getGraph().vertexRef();
-        final HighlightModel<Spot, Link> highlighter = mamutPluginAppModel.getAppModel().getHighlightModel();
+        Spot sRef = projectModel.getModel().getGraph().vertexRef();
+        final HighlightModel<Spot, Link> highlighter = projectModel.getHighlightModel();
         highlighter.listeners().add( () -> {
             if (highlighter.getHighlightedVertex(sRef) != null)
             {
-                myGroupHandle.getModel(mamutPluginAppModel.getAppModel().NAVIGATION).notifyNavigateToVertex(sRef);
+                myGroupHandle.getModel(projectModel.NAVIGATION).notifyNavigateToVertex(sRef);
             }
         });
 
